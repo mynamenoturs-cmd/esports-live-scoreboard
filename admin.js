@@ -52,13 +52,47 @@ function renderLiveControl(){
 }
 function syncMatchDefaults(){const g=gameFor($('#match-game').value);if(!g)return;$('#match-bo').value=String(g.default_best_of||1);renderMatchFormTeams()}
 
+const boOptions=()=>'<option value="1">BO1</option><option value="3">BO3</option><option value="5">BO5</option>';
+function ensureRoundBestOfControls(game){
+  const base=$('#generator-bo');if(!base)return;
+  const baseField=base.closest('.field');
+  const baseLabel=baseField?.querySelector('label');if(baseLabel)baseLabel.textContent='Kumpulan / Liga';
+  if(!base.dataset.roundReady){base.innerHTML=boOptions();base.dataset.roundReady='1'}
+  let host=$('#generator-round-bo-wrap');
+  if(!host){
+    host=document.createElement('div');host.id='generator-round-bo-wrap';host.className='field span-2';
+    host.innerHTML=`<label>Format Setiap Pusingan</label><div class="form-grid"><div class="field"><label>Pusingan 16</label><select id="generator-bo-r16" data-round-bo>${boOptions()}</select></div><div class="field"><label>Suku Akhir</label><select id="generator-bo-qf" data-round-bo>${boOptions()}</select></div><div class="field"><label>Separuh Akhir</label><select id="generator-bo-sf" data-round-bo>${boOptions()}</select></div><div class="field"><label>Grand Final</label><select id="generator-bo-final" data-round-bo>${boOptions()}</select></div></div><div class="auto-seed-note">Tetapan ini digunakan apabila jadual dijana. Contoh pantas: R16 BO1 · Suku Akhir BO1 · Separuh Akhir BO3 · Final BO5.</div>`;
+    baseField?.insertAdjacentElement('afterend',host);
+  }
+  let note=$('#generator-goals-note');
+  if(!note){note=document.createElement('div');note.id='generator-goals-note';note.className='field span-2 notice hidden';note.textContent='FIFA menggunakan skor gol. Tetapan Best Of tidak digunakan untuk game ini.';host.insertAdjacentElement('afterend',note)}
+  const isSeries=game?.scoring_mode==='series';
+  baseField?.classList.toggle('hidden',!isSeries);host.classList.toggle('hidden',!isSeries);note.classList.toggle('hidden',isSeries);
+  if(!isSeries)return;
+  if(host.dataset.gameId!==game.id){
+    host.dataset.gameId=game.id;
+    let saved=null;try{saved=JSON.parse(localStorage.getItem(`esports-bo-${game.id}`)||'null')}catch{}
+    const defaults={group:1,roundof16:1,quarterfinal:1,semifinal:3,final:5};const cfg={...defaults,...(saved||{})};
+    base.value=String(cfg.group);$('#generator-bo-r16').value=String(cfg.roundof16);$('#generator-bo-qf').value=String(cfg.quarterfinal);$('#generator-bo-sf').value=String(cfg.semifinal);$('#generator-bo-final').value=String(cfg.final);
+  }
+}
+function getRoundBestOfConfig(){return {group:Number($('#generator-bo')?.value||1),league:Number($('#generator-bo')?.value||1),roundof16:Number($('#generator-bo-r16')?.value||1),quarterfinal:Number($('#generator-bo-qf')?.value||1),semifinal:Number($('#generator-bo-sf')?.value||3),final:Number($('#generator-bo-final')?.value||5)}}
+function saveRoundBestOfPrefs(){const gid=$('#generator-game')?.value;if(!gid)return;const cfg=getRoundBestOfConfig();try{localStorage.setItem(`esports-bo-${gid}`,JSON.stringify(cfg))}catch{}}
+async function applyRoundBestOf(gameId){
+  const game=gameFor(gameId);if(!game||game.scoring_mode!=='series'||bundle.demo)return;
+  const cfg=getRoundBestOfConfig();
+  for(const stage of ['group','league','roundof16','quarterfinal','semifinal','final']){
+    const {error}=await supabase.from('matches').update({best_of:cfg[stage]}).eq('tournament_id',bundle.tournament.id).eq('game_id',gameId).eq('auto_generated',true).eq('stage',stage);
+    if(error)throw error;
+  }
+}
 function renderGeneratorState(){
   const gid=$('#generator-game')?.value;const game=gameFor(gid);if(!game)return;
+  ensureRoundBestOfControls(game);
   const teams=bundle.teams.filter(t=>t.game_id===gid);const n=teams.length,format=$('#generator-format').value;
   $('#generator-team-count').textContent=`${n} pasukan`;
   $('#generator-group-wrap').classList.toggle('hidden',format!=='group_knockout');
   $('#generate-knockout').classList.toggle('hidden',format!=='group_knockout');
-  if(!$('#generator-bo').dataset.touched) $('#generator-bo').value=String(game.default_best_of||1);
   let hint='';
   if(format==='single_elimination'){const size=n<2?0:2**Math.ceil(Math.log2(n));hint=n>16?'Maksimum 16 pasukan untuk bracket automatik.':`${n} pasukan → bracket ${size||'—'} slot, ${size?size-1:0} perlawanan maksimum. Pemenang akan auto-advance.`}
   else if(format==='league') hint=`Liga penuh: ${n} pasukan menghasilkan ${n>1?n*(n-1)/2:0} perlawanan. Untuk 16 pasukan = 120 perlawanan.`;
@@ -110,12 +144,13 @@ async function generateFormat(e){
     if(format==='single_elimination')result=await generateSingleElimination(bundle,gid,opts);
     else if(format==='league')result=await generateLeague(bundle,gid,opts);
     else result=await generateGroups(bundle,gid,opts);
-    msg(`Berjaya generate ${result.matches} perlawanan${result.groups?` dalam ${result.groups} kumpulan`:''}.`,'success');await refresh();
+    await applyRoundBestOf(gid);saveRoundBestOfPrefs();
+    msg(`Berjaya generate ${result.matches} perlawanan${result.groups?` dalam ${result.groups} kumpulan`:''}. Format BO setiap pusingan sudah diterapkan.`,'success');await refresh();
   }catch(err){msg(err.message||String(err),'error')}
 }
 async function buildGroupKnockout(){
   if(bundle.demo)return msg('Demo Mode.','error');const gid=$('#generator-game').value;
-  try{const result=await generateKnockoutFromGroups(bundle,gid,generatorOpts());msg(`Knockout Top 2 siap: ${result.matches} slot bracket termasuk pusingan seterusnya.`,'success');await refresh()}catch(err){msg(err.message||String(err),'error')}
+  try{const result=await generateKnockoutFromGroups(bundle,gid,generatorOpts());await applyRoundBestOf(gid);saveRoundBestOfPrefs();msg(`Knockout Top 2 siap: ${result.matches} slot bracket. Format BO setiap pusingan sudah diterapkan.`,'success');await refresh()}catch(err){msg(err.message||String(err),'error')}
 }
 async function clearGenerated(){
   if(bundle.demo)return msg('Demo Mode.','error');const gid=$('#generator-game').value;if(!confirm('Padam semua perlawanan yang dijana automatik untuk game ini? Match manual kekal.'))return;
@@ -139,7 +174,8 @@ async function deletePlayer(id){if(bundle.demo)return msg('Demo Mode.','error');
 
 $('#login-form').addEventListener('submit',signIn);$('#logout').addEventListener('click',signOut);$('#team-form').addEventListener('submit',addTeam);$('#match-form').addEventListener('submit',addMatch);$('#player-form').addEventListener('submit',addPlayer);$('#tournament-form').addEventListener('submit',saveTournament);$('#generator-form').addEventListener('submit',generateFormat);$('#generate-knockout').addEventListener('click',buildGroupKnockout);$('#clear-generated').addEventListener('click',clearGenerated);
 $('#team-game').addEventListener('change',e=>{preferredTeamGame=e.target.value;try{localStorage.setItem('esports-admin-team-game',preferredTeamGame)}catch{}});
-$('#match-game').addEventListener('change',syncMatchDefaults);$('#admin-game-filter').addEventListener('change',()=>{renderTeams();renderPlayers();renderMatches();renderLiveControl()});$('#generator-game').addEventListener('change',renderGeneratorState);$('#generator-format').addEventListener('change',renderGeneratorState);$('#generator-groups').addEventListener('change',renderGeneratorState);$('#generator-bo').addEventListener('change',()=>{$('#generator-bo').dataset.touched='1'});
+$('#match-game').addEventListener('change',syncMatchDefaults);$('#admin-game-filter').addEventListener('change',()=>{renderTeams();renderPlayers();renderMatches();renderLiveControl()});$('#generator-game').addEventListener('change',renderGeneratorState);$('#generator-format').addEventListener('change',renderGeneratorState);$('#generator-groups').addEventListener('change',renderGeneratorState);
+document.addEventListener('change',e=>{if(e.target.matches('#generator-bo,[data-round-bo]'))saveRoundBestOfPrefs()});
 $('#score-a-plus').addEventListener('click',()=>updateScore('team_a_score',1));$('#score-a-minus').addEventListener('click',()=>updateScore('team_a_score',-1));$('#score-b-plus').addEventListener('click',()=>updateScore('team_b_score',1));$('#score-b-minus').addEventListener('click',()=>updateScore('team_b_score',-1));$('#save-tiebreak').addEventListener('click',saveTiebreak);$('#set-live').addEventListener('click',setLive);$('#pause').addEventListener('click',pauseMatch);$('#finish').addEventListener('click',finishMatch);$('#reset').addEventListener('click',resetScore);
 document.addEventListener('click',e=>{const c=e.target.closest('[data-control]');if(c){activeMatch=bundle.matches.find(m=>m.id===c.dataset.control);renderLiveControl();$('#live-control').scrollIntoView({behavior:'smooth'})}const dt=e.target.closest('[data-delete-team]');if(dt)deleteTeam(dt.dataset.deleteTeam);const dm=e.target.closest('[data-delete-match]');if(dm)deleteMatch(dm.dataset.deleteMatch);const dp=e.target.closest('[data-delete-player]');if(dp)deletePlayer(dp.dataset.deletePlayer)});
 boot();
