@@ -1,7 +1,8 @@
-const CACHE='pesmac-live-v1';
+const CACHE='pesmac-live-v2';
 const STATIC=[
-  './','./index.html','./styles.css','./tournament-ui.css','./dashboard-ui.css','./team-logo.css',
-  './app.js','./dashboard-ui.js','./ui.js','./data.js','./config.js','./supabase-client.js','./pwa.js',
+  './','./index.html','./live.html','./bracket.html','./overlay.html',
+  './styles.css','./tournament-ui.css','./dashboard-ui.css','./team-logo.css','./pwa.css','./live-fix.css',
+  './app.js','./dashboard-ui.js','./live.js','./bracket.js','./overlay.js','./ui.js','./data.js','./config.js','./supabase-client.js','./pwa.js',
   './manifest.webmanifest','./assets/pesmac-logo.svg'
 ];
 self.addEventListener('install',event=>{
