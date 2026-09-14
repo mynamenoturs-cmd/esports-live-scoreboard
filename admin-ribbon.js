@@ -13,6 +13,7 @@ const STORE_KEY='esports-admin-ribbon-view';
 let activeKey='';
 let installed=false;
 let syncTimer=null;
+let manuallyClosed=false;
 
 function css(){
   if(document.querySelector('#admin-ribbon-style'))return;
@@ -61,7 +62,9 @@ function css(){
       .admin-ribbon-close{padding:9px 10px}
     }
     @media(max-width:520px){
-      .admin-ribbon-filter{display:none}
+      .admin-ribbon-current{display:none}
+      .admin-ribbon-filter{display:flex;flex:1;justify-content:flex-end}
+      .admin-ribbon-filter select{min-width:105px;max-width:42vw}
       .admin-menu-grid{grid-template-columns:1fr}
       .admin-menu-backdrop{padding:8px}
       .admin-menu-sheet{border-radius:18px 18px 10px 10px}
@@ -111,20 +114,20 @@ function applyVisibility(){
 
 function choose(key,{scroll=true}={}){
   const v=viewByKey(key);if(!v||!isAvailable(v))return false;
-  activeKey=key;try{localStorage.setItem(STORE_KEY,key)}catch{}
+  activeKey=key;manuallyClosed=false;try{localStorage.setItem(STORE_KEY,key)}catch{}
   applyVisibility();closeMenu();
   if(scroll)document.querySelector('#admin-ribbon')?.scrollIntoView({behavior:'smooth',block:'start'});
   return true;
 }
-function closeCurrent(){activeKey='';applyVisibility()}
+function closeCurrent(){activeKey='';manuallyClosed=true;applyVisibility()}
 function openMenu(){document.querySelector('#admin-menu-backdrop')?.classList.add('open')}
 function closeMenu(){document.querySelector('#admin-menu-backdrop')?.classList.remove('open')}
 
 function sync(){
   ensureRibbon();
   let saved='';try{saved=localStorage.getItem(STORE_KEY)||''}catch{}
-  if(activeKey&&!isAvailable(viewByKey(activeKey)))activeKey='';
-  if(!activeKey){
+  if(activeKey&&!isAvailable(viewByKey(activeKey))){activeKey='';manuallyClosed=false}
+  if(!activeKey&&!manuallyClosed){
     const preferred=(saved&&isAvailable(viewByKey(saved)))?saved:(isAvailable(viewByKey('live'))?'live':'setup');
     const pv=viewByKey(preferred);if(pv&&isAvailable(pv))activeKey=preferred;
   }
