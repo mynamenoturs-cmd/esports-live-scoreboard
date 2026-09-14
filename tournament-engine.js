@@ -14,6 +14,17 @@ const orderedTeams=(teams,mode='random')=>mode==='seeded'
   : shuffle(teams);
 const isoAt=(startAt,minutes)=>startAt?new Date(new Date(startAt).getTime()+minutes*60000).toISOString():null;
 const nextPow2=n=>2**Math.ceil(Math.log2(Math.max(2,n)));
+const uiStationCount=()=>{
+  try{return Number(document.querySelector('#generator-stations')?.value||1)}catch{return 1}
+};
+const stationCount=(value)=>Math.max(1,Math.min(4,Number(value||uiStationCount()||1)));
+const stationPlan=(seq,startAt,intervalMinutes,count)=>{
+  const n=stationCount(count);
+  return {
+    station:String((seq%n)+1),
+    scheduled_at:isoAt(startAt,Math.floor(seq/n)*Number(intervalMinutes||20))
+  };
+};
 
 function bracketDefs(size){
   if(size>16) throw new Error('Generator automatik sekarang menyokong maksimum 16 pasukan untuk satu bracket.');
@@ -42,7 +53,7 @@ async function removeGenerated(tournamentId,gameId,scope='all'){
 }
 async function insertMatches(payloads){
   if(!payloads.length) return [];
-  const {data,error}=await supabase.from('matches').insert(payloads).select('id,stage,bracket_round,bracket_position,next_match_id,next_match_slot,team_a_id,team_b_id,status,winner_id');
+  const {data,error}=await supabase.from('matches').insert(payloads).select('id,stage,bracket_round,bracket_position,next_match_id,next_match_slot,team_a_id,team_b_id,status,winner_id,station,scheduled_at');
   if(error) throw error; return data||[];
 }
 async function markBye(row,winnerId){
@@ -56,12 +67,13 @@ async function markBye(row,winnerId){
   }
 }
 
-async function buildKnockout(bundle,gameId,{pairing='random',bestOf=1,startAt=null,intervalMinutes=20,replaceScope='all',customPairs=null}={}){
+async function buildKnockout(bundle,gameId,{pairing='random',bestOf=1,startAt=null,intervalMinutes=20,replaceScope='all',customPairs=null,stationCount:stationCountOption}={}){
   const game=bundle.games.find(g=>g.id===gameId); if(!game) throw new Error('Game tidak ditemui.');
   let teams=bundle.teams.filter(t=>t.game_id===gameId); if(teams.length<2) throw new Error('Sekurang-kurangnya 2 pasukan diperlukan.');
   if(teams.length>16&&!customPairs) throw new Error('Maksimum 16 pasukan untuk bracket automatik.');
   if(replaceScope) await removeGenerated(bundle.tournament.id,gameId,replaceScope);
 
+  const stations=stationCount(stationCountOption);
   let firstPairs,size;
   if(customPairs){
     firstPairs=customPairs; size=customPairs.length*2;
@@ -78,10 +90,12 @@ async function buildKnockout(bundle,gameId,{pairing='random',bestOf=1,startAt=nu
     const d=defs[i];
     const payloads=Array.from({length:d.count},(_,j)=>{
       const first=i===0?firstPairs[j]:[null,null];
+      const seq=offsets[i]+j;
+      const plan=stationPlan(seq,startAt,intervalMinutes,stations);
       return {
         tournament_id:bundle.tournament.id,game_id:gameId,stage:d.stage,round_name:d.label,
         team_a_id:first?.[0]||null,team_b_id:first?.[1]||null,best_of:Number(bestOf||game.default_best_of||1),
-        scheduled_at:isoAt(startAt,(offsets[i]+j)*Number(intervalMinutes||20)),status:'scheduled',
+        scheduled_at:plan.scheduled_at,station:plan.station,status:'scheduled',
         bracket_round:i+1,bracket_position:j+1,
         next_match_id:nextRows?nextRows[Math.floor(j/2)]?.id:null,
         next_match_slot:nextRows?(j%2===0?'a':'b'):null,
@@ -96,30 +110,34 @@ async function buildKnockout(bundle,gameId,{pairing='random',bestOf=1,startAt=nu
     const [a,b]=firstPairs[i]||[];
     if((a&&!b)||(!a&&b)) await markBye(firstRows[i],a||b);
   }
-  return {format:'single_elimination',matches:defs.reduce((s,d)=>s+d.count,0),bracketSize:size};
+  return {format:'single_elimination',matches:defs.reduce((s,d)=>s+d.count,0),bracketSize:size,stations};
 }
 
 export async function generateSingleElimination(bundle,gameId,opts={}){
   return buildKnockout(bundle,gameId,{...opts,replaceScope:'all'});
 }
 
-export async function generateLeague(bundle,gameId,{pairing='random',bestOf=1,startAt=null,intervalMinutes=20}={}){
+export async function generateLeague(bundle,gameId,{pairing='random',bestOf=1,startAt=null,intervalMinutes=20,stationCount:stationCountOption}={}){
   const game=bundle.games.find(g=>g.id===gameId); if(!game) throw new Error('Game tidak ditemui.');
   const teams=orderedTeams(bundle.teams.filter(t=>t.game_id===gameId),pairing);
   if(teams.length<2) throw new Error('Sekurang-kurangnya 2 pasukan diperlukan.');
   if(teams.length>16) throw new Error('Had generator liga ditetapkan 16 pasukan untuk event ini.');
   await removeGenerated(bundle.tournament.id,gameId,'all');
+  const stations=stationCount(stationCountOption);
   const rounds=roundRobin(teams.map(t=>t.id)); let seq=0; const payloads=[];
-  rounds.forEach((pairs,r)=>pairs.forEach(([a,b])=>payloads.push({
-    tournament_id:bundle.tournament.id,game_id:gameId,stage:'league',round_name:`Liga · Pusingan ${r+1}`,
-    team_a_id:a,team_b_id:b,best_of:Number(bestOf||game.default_best_of||1),scheduled_at:isoAt(startAt,seq++*Number(intervalMinutes||20)),
-    status:'scheduled',auto_generated:true
-  })));
+  rounds.forEach((pairs,r)=>pairs.forEach(([a,b])=>{
+    const plan=stationPlan(seq++,startAt,intervalMinutes,stations);
+    payloads.push({
+      tournament_id:bundle.tournament.id,game_id:gameId,stage:'league',round_name:`Liga · Pusingan ${r+1}`,
+      team_a_id:a,team_b_id:b,best_of:Number(bestOf||game.default_best_of||1),scheduled_at:plan.scheduled_at,station:plan.station,
+      status:'scheduled',auto_generated:true
+    });
+  }));
   await insertMatches(payloads);
-  return {format:'league',matches:payloads.length,rounds:rounds.length};
+  return {format:'league',matches:payloads.length,rounds:rounds.length,stations};
 }
 
-export async function generateGroups(bundle,gameId,{pairing='random',groupCount=4,bestOf=1,startAt=null,intervalMinutes=20}={}){
+export async function generateGroups(bundle,gameId,{pairing='random',groupCount=4,bestOf=1,startAt=null,intervalMinutes=20,stationCount:stationCountOption}={}){
   const game=bundle.games.find(g=>g.id===gameId); if(!game) throw new Error('Game tidak ditemui.');
   const teams=orderedTeams(bundle.teams.filter(t=>t.game_id===gameId),pairing);
   const groupsN=Number(groupCount||4);
@@ -127,6 +145,7 @@ export async function generateGroups(bundle,gameId,{pairing='random',groupCount=
   if(teams.length<groupsN*2) throw new Error(`Sekurang-kurangnya ${groupsN*2} pasukan diperlukan untuk ${groupsN} kumpulan.`);
   if(teams.length>16) throw new Error('Had generator group ditetapkan 16 pasukan untuk event ini.');
   await removeGenerated(bundle.tournament.id,gameId,'all');
+  const stations=stationCount(stationCountOption);
   const groups=Array.from({length:groupsN},()=>[]);
   teams.forEach((t,i)=>{
     const cycle=Math.floor(i/groupsN),pos=i%groupsN;
@@ -136,17 +155,20 @@ export async function generateGroups(bundle,gameId,{pairing='random',groupCount=
   let seq=0; const payloads=[];
   groups.forEach((group,gi)=>{
     const label=String.fromCharCode(65+gi),rounds=roundRobin(group.map(t=>t.id));
-    rounds.forEach((pairs,r)=>pairs.forEach(([a,b])=>payloads.push({
-      tournament_id:bundle.tournament.id,game_id:gameId,stage:'group',group_name:label,round_name:`Kumpulan ${label} · Pusingan ${r+1}`,
-      team_a_id:a,team_b_id:b,best_of:Number(bestOf||game.default_best_of||1),scheduled_at:isoAt(startAt,seq++*Number(intervalMinutes||20)),
-      status:'scheduled',auto_generated:true
-    })));
+    rounds.forEach((pairs,r)=>pairs.forEach(([a,b])=>{
+      const plan=stationPlan(seq++,startAt,intervalMinutes,stations);
+      payloads.push({
+        tournament_id:bundle.tournament.id,game_id:gameId,stage:'group',group_name:label,round_name:`Kumpulan ${label} · Pusingan ${r+1}`,
+        team_a_id:a,team_b_id:b,best_of:Number(bestOf||game.default_best_of||1),scheduled_at:plan.scheduled_at,station:plan.station,
+        status:'scheduled',auto_generated:true
+      });
+    }));
   });
   await insertMatches(payloads);
-  return {format:'group_knockout',matches:payloads.length,groups:groupsN};
+  return {format:'group_knockout',matches:payloads.length,groups:groupsN,stations};
 }
 
-export async function generateKnockoutFromGroups(bundle,gameId,{bestOf=1,startAt=null,intervalMinutes=20}={}){
+export async function generateKnockoutFromGroups(bundle,gameId,{bestOf=1,startAt=null,intervalMinutes=20,stationCount:stationCountOption}={}){
   const groupMatches=bundle.matches.filter(m=>m.game_id===gameId&&m.stage==='group'&&m.group_name);
   if(!groupMatches.length) throw new Error('Tiada perlawanan kumpulan dijumpai.');
   if(groupMatches.some(m=>m.status!=='finished')) throw new Error('Selesaikan semua perlawanan kumpulan dahulu.');
@@ -164,7 +186,7 @@ export async function generateKnockoutFromGroups(bundle,gameId,{bestOf=1,startAt
   let pairs;
   if(labels.length===2){const [A,B]=labels;pairs=[[top[A][0],top[B][1]],[top[B][0],top[A][1]]];}
   else {const [A,B,C,D]=labels;pairs=[[top[A][0],top[B][1]],[top[C][0],top[D][1]],[top[B][0],top[A][1]],[top[D][0],top[C][1]]];}
-  return buildKnockout(bundle,gameId,{bestOf,startAt,intervalMinutes,replaceScope:'knockout',customPairs:pairs});
+  return buildKnockout(bundle,gameId,{bestOf,startAt,intervalMinutes,stationCount:stationCountOption,replaceScope:'knockout',customPairs:pairs});
 }
 
 export async function removeAutoGeneratedMatches(bundle,gameId){
