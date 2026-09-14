@@ -1,0 +1,11 @@
+# Do not publish server/tooling files as static assets
+.git/
+.github/
+.gitignore
+.assetsignore
+wrangler.jsonc
+worker.js
+functions/
+supabase/
+*.md
+_routes.json
