@@ -15,9 +15,9 @@ function paint(){
   document.querySelector('#teams').innerHTML=teamsHtml(b);
   document.querySelector('#next-match').innerHTML=nextMatchHtml(b);
   document.querySelector('#demo-notice').classList.toggle('hidden',!root.demo);
-  document.querySelector('#live-link').href=gameUrl('./live.html',b.activeGame);
-  document.querySelector('#bracket-link').href=gameUrl('./bracket.html',b.activeGame);
-  document.querySelector('#overlay-link').href=gameUrl('./overlay.html',b.activeGame);
+  document.querySelector('#live-link').href=gameUrl('./live',b.activeGame);
+  document.querySelector('#bracket-link').href=gameUrl('./bracket',b.activeGame);
+  document.querySelector('#overlay-link').href=gameUrl('./overlay',b.activeGame);
   document.querySelector('#app').classList.remove('hidden');
 }
 function selectGame(code){selectedCode=code;const u=new URL(location.href);u.searchParams.set('game',code);history.replaceState({},'',u);paint()}
