@@ -44,7 +44,7 @@ async function snapshot(request, env) {
   const tCols = 'id,slug,name,venue,starts_at,ends_at,status,updated_at';
   const gameCols = 'id,tournament_id,code,name,team_size,scoring_mode,default_best_of,allow_draws,sort_order,is_active';
   const teamCols = 'id,tournament_id,game_id,name,short_name,logo_url,seed_order';
-  const matchCols = 'id,tournament_id,game_id,stage,round_name,team_a_id,team_b_id,team_a_score,team_b_score,team_a_tiebreak,team_b_tiebreak,best_of,scheduled_at,station,status,winner_id,started_at,finished_at,updated_at';
+  const matchCols = 'id,tournament_id,game_id,stage,round_name,group_name,bracket_round,bracket_position,next_match_id,next_match_slot,auto_generated,team_a_id,team_b_id,team_a_score,team_b_score,team_a_tiebreak,team_b_tiebreak,best_of,scheduled_at,station,status,winner_id,started_at,finished_at,updated_at';
 
   try {
     const tournaments = await getJson(
@@ -66,7 +66,7 @@ async function snapshot(request, env) {
       JSON.stringify({ tournament, games, teams, matches, edge_cached_at: new Date().toISOString() }),
       { headers: jsonHeaders }
     );
-    await cache.put(cacheKey, response.clone());
+    await cache.put(cacheKey,response.clone());
     return response;
   } catch {
     return new Response(JSON.stringify({ error: 'Snapshot unavailable' }), {
@@ -79,9 +79,7 @@ async function snapshot(request, env) {
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
-    if (request.method === 'GET' && url.pathname === '/api/snapshot') {
-      return snapshot(request, env);
-    }
+    if (request.method === 'GET' && url.pathname === '/api/snapshot') return snapshot(request,env);
     if (url.pathname.startsWith('/api/')) {
       return new Response(JSON.stringify({ error: 'Not found' }), {
         status: 404,
