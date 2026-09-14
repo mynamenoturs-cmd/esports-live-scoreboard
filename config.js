@@ -16,3 +16,7 @@ export const isConfigured = () =>
   !CONFIG.SUPABASE_URL.includes('PASTE_') &&
   CONFIG.SUPABASE_PUBLISHABLE_KEY.length > 40 &&
   !CONFIG.SUPABASE_PUBLISHABLE_KEY.includes('PASTE_');
+
+if (typeof window !== 'undefined' && /^\/admin\/?$/.test(window.location.pathname)) {
+  import('./marshal-admin.js?v=ca346aba').catch((err) => console.error('Marshal panel:', err));
+}
