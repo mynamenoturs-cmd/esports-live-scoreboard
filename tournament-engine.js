@@ -145,4 +145,57 @@ function installStationSelector(){
   const restore=()=>{const gid=document.querySelector('#generator-game')?.value||'default';try{select.value=localStorage.getItem(`esports-stations-${gid}`)||'1'}catch{select.value='1'}};
   restore();select.addEventListener('change',()=>{const gid=document.querySelector('#generator-game')?.value||'default';try{localStorage.setItem(`esports-stations-${gid}`,select.value)}catch{}});document.querySelector('#generator-game')?.addEventListener('change',restore);
 }
-if(typeof document!=='undefined'){if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',installStationSelector,{once:true});else queueMicrotask(installStationSelector)}
+
+function installGeneratorGameGuard(){
+  const generator=document.querySelector('#generator-game'),table=document.querySelector('#match-table');
+  if(!generator||!table||generator.dataset.gameGuard)return;
+  generator.dataset.gameGuard='1';
+  const prefKey='esports-admin-generator-game';
+  const codeOfOption=option=>(option?.textContent||'').split('·')[0].trim().toLowerCase();
+  const pendingCodes=()=>{
+    const codes=[];
+    for(const row of table.querySelectorAll('tr')){
+      const text=(row.textContent||'').toLowerCase();
+      if(!text.includes('auto')||!text.includes('scheduled'))continue;
+      const first=row.querySelector('td')?.textContent||'';
+      const code=first.trim().split(/\s+/)[0]?.toLowerCase();
+      if(code)codes.push(code);
+    }
+    return [...new Set(codes)];
+  };
+  const selectByCode=code=>{
+    const option=[...generator.options].find(o=>codeOfOption(o)===String(code).toLowerCase());
+    if(!option)return false;
+    generator.value=option.value;
+    try{localStorage.setItem(prefKey,option.value)}catch{}
+    generator.dispatchEvent(new Event('change',{bubbles:true}));
+    return true;
+  };
+  const restore=()=>{
+    if(!generator.options.length)return;
+    let saved='';try{saved=localStorage.getItem(prefKey)||''}catch{}
+    if(saved&&[...generator.options].some(o=>o.value===saved)){
+      if(generator.value!==saved){generator.value=saved;generator.dispatchEvent(new Event('change',{bubbles:true}))}
+      return;
+    }
+    const codes=pendingCodes();
+    if(codes.length===1)selectByCode(codes[0]);
+  };
+  generator.addEventListener('change',()=>{try{localStorage.setItem(prefKey,generator.value)}catch{}});
+  document.addEventListener('click',event=>{
+    if(!event.target.closest('#rebalance-stations'))return;
+    const codes=pendingCodes();
+    const selected=codeOfOption(generator.selectedOptions?.[0]);
+    if(codes.length===1&&!codes.includes(selected))selectByCode(codes[0]);
+  },true);
+  const observer=new MutationObserver(restore);
+  observer.observe(generator,{childList:true});
+  observer.observe(table,{childList:true,subtree:true});
+  setTimeout(restore,0);
+}
+
+if(typeof document!=='undefined'){
+  const install=()=>{installStationSelector();installGeneratorGameGuard()};
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install,{once:true});
+  else queueMicrotask(install);
+}
