@@ -127,3 +127,5 @@ async function boot() {
 
 boot();
 supabase?.auth?.onAuthStateChange?.((event, session)=>{if(session&&['SIGNED_IN','TOKEN_REFRESHED','INITIAL_SESSION'].includes(event))setTimeout(boot,50)});
+
+import('./admin-ribbon.js?v=ribbon1').catch(err=>console.error('Admin ribbon gagal dimuatkan',err));
