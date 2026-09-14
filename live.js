@@ -1,5 +1,5 @@
 import { loadTournamentBundle, subscribeTournament, applyRealtimeChange, filterBundle, gameFromLocation } from './data.js';
-import { liveMatchHtml, nextMatchHtml, gameTabsHtml } from './ui.js';
+import { liveMatchHtml, nextMatchHtml, gameTabsHtml } from './ui.js?v=teamlogo1';
 let sub,root,selectedCode,countdownTimer;
 const selectedStation=()=>{try{return new URLSearchParams(location.search).get('station')||''}catch{return ''}};
 function stationBundle(bundle,station){return station?{...bundle,matches:bundle.matches.filter(m=>String(m.station||'1')===String(station))}:bundle}
