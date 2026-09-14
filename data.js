@@ -5,8 +5,8 @@ import { demoTournament, demoGames, demoTeams, demoMatches } from './demo-data.j
 const TOURNAMENT_COLUMNS = 'id,slug,name,venue,starts_at,ends_at,status,updated_at';
 const GAME_COLUMNS = 'id,tournament_id,code,name,team_size,scoring_mode,default_best_of,allow_draws,sort_order,is_active';
 const TEAM_COLUMNS = 'id,tournament_id,game_id,name,short_name,logo_url,seed_order';
-const MATCH_COLUMNS = 'id,tournament_id,game_id,stage,round_name,team_a_id,team_b_id,team_a_score,team_b_score,team_a_tiebreak,team_b_tiebreak,best_of,scheduled_at,station,status,winner_id,started_at,finished_at,updated_at';
-const CACHE_KEY = `scoreboard-static:${CONFIG.DEFAULT_TOURNAMENT_SLUG}:v2`;
+const MATCH_COLUMNS = 'id,tournament_id,game_id,stage,round_name,group_name,bracket_round,bracket_position,next_match_id,next_match_slot,auto_generated,team_a_id,team_b_id,team_a_score,team_b_score,team_a_tiebreak,team_b_tiebreak,best_of,scheduled_at,station,status,winner_id,started_at,finished_at,updated_at';
+const CACHE_KEY = `scoreboard-static:${CONFIG.DEFAULT_TOURNAMENT_SLUG}:v3`;
 const STATIC_CACHE_MS = 10 * 60 * 1000;
 
 export const teamMap = (teams=[]) => Object.fromEntries(teams.map(t => [t.id, t]));
@@ -31,7 +31,7 @@ export function clearStaticCache(){ try{sessionStorage.removeItem(CACHE_KEY)}cat
 export function calculateStandings(teams=[],matches=[]){
   const rows=new Map(teams.map(t=>[t.id,{tournament_id:t.tournament_id,game_id:t.game_id,team_id:t.id,played:0,wins:0,draws:0,losses:0,points:0,score_for:0,score_against:0}]));
   for(const m of matches){
-    if(m.status!=='finished'||m.stage!=='group'||!m.team_a_id||!m.team_b_id) continue;
+    if(m.status!=='finished'||!['group','league'].includes(m.stage)||!m.team_a_id||!m.team_b_id) continue;
     const a=rows.get(m.team_a_id), b=rows.get(m.team_b_id); if(!a||!b) continue;
     a.played++; b.played++;
     a.score_for+=Number(m.team_a_score||0); a.score_against+=Number(m.team_b_score||0);
@@ -43,6 +43,17 @@ export function calculateStandings(teams=[],matches=[]){
   const sorted=[...rows.values()].sort((x,y)=>y.points-x.points||y.wins-x.wins||((y.score_for-y.score_against)-(x.score_for-x.score_against))||y.score_for-x.score_for);
   let lastKey=null,lastPos=0;
   return sorted.map((r,i)=>{const key=`${r.points}|${r.wins}|${r.score_for-r.score_against}|${r.score_for}`;if(key!==lastKey){lastPos=i+1;lastKey=key}return{...r,position:lastPos}});
+}
+
+function groupStandingsFor(teams,matches){
+  const labels=[...new Set(matches.filter(m=>m.stage==='group'&&m.group_name).map(m=>m.group_name))].sort();
+  const result={};
+  for(const label of labels){
+    const gm=matches.filter(m=>m.stage==='group'&&m.group_name===label);
+    const ids=new Set(gm.flatMap(m=>[m.team_a_id,m.team_b_id]).filter(Boolean));
+    result[label]=calculateStandings(teams.filter(t=>ids.has(t.id)),gm);
+  }
+  return result;
 }
 
 export function resolveGame(bundle, ref){
@@ -59,10 +70,10 @@ export function resolveGame(bundle, ref){
 
 export function filterBundle(bundle, gameRef){
   const activeGame=resolveGame(bundle,gameRef);
-  if(!activeGame) return {...bundle,activeGame:null,teams:[],matches:[],standings:[]};
+  if(!activeGame) return {...bundle,activeGame:null,teams:[],matches:[],standings:[],groupStandings:{}};
   const teams=(bundle.teams||[]).filter(t=>t.game_id===activeGame.id);
   const matches=(bundle.matches||[]).filter(m=>m.game_id===activeGame.id);
-  return {...bundle,activeGame,teams,matches,standings:calculateStandings(teams,matches)};
+  return {...bundle,activeGame,teams,matches,standings:calculateStandings(teams,matches),groupStandings:groupStandingsFor(teams,matches)};
 }
 
 export function gameFromLocation(bundle){
