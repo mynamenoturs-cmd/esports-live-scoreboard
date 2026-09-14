@@ -1,5 +1,5 @@
 import { loadTournamentBundle, subscribeTournament, applyRealtimeChange, filterBundle, gameFromLocation, gameUrl } from './data.js';
-import { liveMatchHtml, standingsHtml, scheduleHtml, teamsHtml, nextMatchHtml, gameTabsHtml } from './ui.js';
+import { liveMatchHtml, standingsHtml, scheduleHtml, teamsHtml, nextMatchHtml, gameTabsHtml, formatSummaryText } from './ui.js';
 
 let sub,root,selectedCode;
 function view(){ return filterBundle(root,selectedCode); }
@@ -14,6 +14,7 @@ function paint(){
   document.querySelector('#schedule').innerHTML=scheduleHtml(b);
   document.querySelector('#teams').innerHTML=teamsHtml(b);
   document.querySelector('#next-match').innerHTML=nextMatchHtml(b);
+  const summary=document.querySelector('#format-summary');if(summary)summary.textContent=formatSummaryText(b);
   document.querySelector('#demo-notice').classList.toggle('hidden',!root.demo);
   document.querySelector('#live-link').href=gameUrl('./live',b.activeGame);
   document.querySelector('#bracket-link').href=gameUrl('./bracket',b.activeGame);
