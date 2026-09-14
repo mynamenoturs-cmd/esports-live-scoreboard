@@ -5,7 +5,7 @@ import { generateSingleElimination, generateLeague, generateGroups, generateKnoc
 let bundle=null,players=[],activeMatch=null;
 const $=s=>document.querySelector(s);
 const msg=(text,type='notice')=>{const el=$('#admin-message');el.className=`notice ${type==='error'?'error':type==='success'?'success':''}`;el.textContent=text;el.classList.remove('hidden');setTimeout(()=>el.classList.add('hidden'),6000)};
-const esc=(s='')=>String(s).replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
+const esc=(s='')=>String(s).replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt',"'":'&#39;','"':'&quot;'}[c]));
 const currentFilter=()=>$('#admin-game-filter')?.value||'all';
 const gameFor=id=>bundle?.games?.find(g=>g.id===id);
 const filtered=(rows,key='game_id')=>currentFilter()==='all'?rows:rows.filter(r=>gameFor(r[key])?.code===currentFilter());
@@ -65,7 +65,22 @@ function generatorOpts(){
 
 async function signIn(e){e.preventDefault();$('#login-error').classList.add('hidden');const email=$('#email').value.trim(),password=$('#password').value;const {error}=await supabase.auth.signInWithPassword({email,password});if(error){$('#login-error').textContent=error.message;$('#login-error').classList.remove('hidden');return}boot()}
 async function signOut(){if(supabase)await supabase.auth.signOut();location.reload()}
-async function addTeam(e){e.preventDefault();if(bundle.demo)return msg('Demo Mode.','error');const gid=$('#team-game').value;const existing=bundle.teams.filter(t=>t.game_id===gid);const seed=Number($('#team-seed').value||existing.length+1);const payload={tournament_id:bundle.tournament.id,game_id:gid,name:$('#team-name').value.trim(),short_name:$('#team-short').value.trim().toUpperCase(),seed_order:seed};const {error}=await supabase.from('teams').insert(payload);if(error)return msg(error.message,'error');e.target.reset();$('#team-seed').value=String(existing.length+2);msg('Pasukan/peserta ditambah.','success');await refresh()}
+async function addTeam(e){
+  e.preventDefault();if(bundle.demo)return msg('Demo Mode.','error');
+  const gid=$('#team-game').value;
+  const existing=bundle.teams.filter(t=>t.game_id===gid);
+  const seed=Number($('#team-seed').value||existing.length+1);
+  const payload={tournament_id:bundle.tournament.id,game_id:gid,name:$('#team-name').value.trim(),short_name:$('#team-short').value.trim().toUpperCase(),seed_order:seed};
+  const {error}=await supabase.from('teams').insert(payload);if(error)return msg(error.message,'error');
+  $('#team-name').value='';
+  $('#team-short').value='';
+  $('#team-seed').value=String(existing.length+2);
+  msg('Pasukan/peserta ditambah.','success');
+  await refresh();
+  const teamGame=$('#team-game');if(teamGame&&[...teamGame.options].some(o=>o.value===gid))teamGame.value=gid;
+  renderGeneratorState();
+  $('#team-name')?.focus();
+}
 async function addMatch(e){e.preventDefault();if(bundle.demo)return msg('Demo Mode.','error');const gid=$('#match-game').value,a=$('#match-a').value||null,b=$('#match-b').value||null;if(a&&b&&a===b)return msg('Team A dan Team B mesti berbeza.','error');const local=$('#match-time').value;const payload={tournament_id:bundle.tournament.id,game_id:gid,team_a_id:a,team_b_id:b,round_name:$('#match-round').value.trim(),stage:$('#match-stage').value,best_of:Number($('#match-bo').value),scheduled_at:local?new Date(local).toISOString():null,status:'scheduled',auto_generated:false};const {error}=await supabase.from('matches').insert(payload);if(error)return msg(error.message,'error');e.target.reset();renderGameSelectors();msg('Perlawanan ditambah.','success');await refresh()}
 async function addPlayer(e){e.preventDefault();if(bundle.demo)return msg('Demo Mode.','error');const team_id=$('#player-team').value;if(!team_id)return msg('Pilih pasukan dahulu.','error');const team=bundle.teams.find(t=>t.id===team_id),game=gameFor(team?.game_id);const current=players.filter(p=>p.team_id===team_id).length;if(game?.team_size&&current>=game.team_size&& !confirm(`${game.name} ditetapkan ${game.team_size} pemain utama. Tambah juga?`))return;const payload={team_id,gamer_tag:$('#player-tag').value.trim(),real_name:$('#player-real').value.trim()||null,role_name:$('#player-role').value.trim()||null,sort_order:current+1};const {error}=await supabase.from('players').insert(payload);if(error)return msg(error.message,'error');e.target.reset();msg('Pemain ditambah.','success');await refresh()}
 async function saveTournament(e){
