@@ -5,6 +5,20 @@ export const teamName = (m,id,fallback='TBD') => esc(m[id]?.name || fallback);
 const formatLabel=(bundle,m)=>bundle.activeGame?.scoring_mode==='goals'?'GOALS':`BO${m.best_of||bundle.activeGame?.default_best_of||1}`;
 const stageLabels={group:'Kumpulan',league:'Liga',roundof16:'Pusingan 16',quarterfinal:'Suku Akhir',semifinal:'Separuh Akhir',final:'Grand Final',friendly:'Friendly'};
 
+function safeLogoUrl(value){
+  const raw=String(value||'').trim();if(!raw)return '';
+  try{const u=new URL(raw,location.origin);return ['http:','https:'].includes(u.protocol)?esc(u.href):''}catch{return ''}
+}
+function logoBadge(team,className='team-mini-logo',fallback='TM'){
+  const text=esc(team?.short_name||initials(team?.name||fallback));
+  const src=safeLogoUrl(team?.logo_url);
+  return `<span class="${className}${src?' has-logo':''}">${src?`<img src="${src}" alt="" loading="lazy" onerror="this.remove();this.parentElement.classList.remove('has-logo')">`:''}<span>${text}</span></span>`;
+}
+function teamInline(team,fallback='TBD'){
+  if(!team)return `<span class="team-inline"><span class="team-inline-name">${esc(fallback)}</span></span>`;
+  return `<span class="team-inline">${logoBadge(team,'team-mini-logo')}<span class="team-inline-name">${esc(team.name||fallback)}</span></span>`;
+}
+
 export function gameTabsHtml(bundle,selectedCode){
   return `<div class="game-tabs">${(bundle.games||[]).filter(g=>g.is_active!==false).sort((a,b)=>(a.sort_order||99)-(b.sort_order||99)).map(g=>`<button class="game-tab ${g.code===selectedCode?'active':''}" data-game="${esc(g.code)}"><span>${esc(g.code.toUpperCase())}</span><small>${esc(g.name)}</small></button>`).join('')}</div>`;
 }
@@ -31,7 +45,7 @@ export function liveMatchHtml(bundle) {
   return `
   <div class="live-card">
     <div class="team-side">
-      <div class="team-logo">${esc(a?.short_name || initials(a?.name||'A'))}</div>
+      ${logoBadge(a,'team-logo','A')}
       <div><div class="kicker">${esc(bundle.activeGame?.code?.toUpperCase()||'GAME')} · ${esc(live.round_name||'Perlawanan')}</div><div class="team-name">${esc(a?.name||'TBD')}</div></div>
     </div>
     <div class="score-core">
@@ -41,7 +55,7 @@ export function liveMatchHtml(bundle) {
       <div class="kicker">${formatLabel(bundle,live)} · ${esc(live.round_name||'')}</div>
     </div>
     <div class="team-side right">
-      <div class="team-logo">${esc(b?.short_name || initials(b?.name||'B'))}</div>
+      ${logoBadge(b,'team-logo','B')}
       <div><div class="kicker">${esc(bundle.activeGame?.code?.toUpperCase()||'GAME')} · ${esc(live.round_name||'Perlawanan')}</div><div class="team-name">${esc(b?.name||'TBD')}</div></div>
     </div>
   </div>`;
@@ -52,7 +66,7 @@ function standingsTable(bundle,rows,title='',qualified=0){
   const drawHead=bundle.activeGame?.allow_draws?'<th>Seri</th>':'';
   const drawCell=s=>bundle.activeGame?.allow_draws?`<td>${s.draws||0}</td>`:'';
   return `${title?`<div class="group-standing-title">${esc(title)}</div>`:''}<div class="table-wrap"><table><thead><tr><th>#</th><th>Pasukan</th><th>Main</th><th>Menang</th>${drawHead}<th>Kalah</th><th>Mata</th></tr></thead><tbody>
-    ${rows.map((s,i)=>`<tr class="${i<qualified?'highlight':i===0&&!title?'highlight':''}"><td class="pos">${s.position||i+1}</td><td>${teamName(tm,s.team_id)}${i<qualified?'<span class="qualifier-badge">LAYAK</span>':''}</td><td>${s.played||0}</td><td>${s.wins||0}</td>${drawCell(s)}<td>${s.losses||0}</td><td><strong>${s.points||0}</strong></td></tr>`).join('')}
+    ${rows.map((s,i)=>`<tr class="${i<qualified?'highlight':i===0&&!title?'highlight':''}"><td class="pos">${s.position||i+1}</td><td>${teamInline(tm[s.team_id])}${i<qualified?'<span class="qualifier-badge">LAYAK</span>':''}</td><td>${s.played||0}</td><td>${s.wins||0}</td>${drawCell(s)}<td>${s.losses||0}</td><td><strong>${s.points||0}</strong></td></tr>`).join('')}
   </tbody></table></div>`;
 }
 
@@ -76,13 +90,13 @@ export function scheduleHtml(bundle, limit=40) {
   const tm=teamMap(bundle.teams);
   if(!bundle.matches.length) return '<div class="notice">Belum ada jadual perlawanan.</div>';
   return `<div class="table-wrap"><table><thead><tr><th>Masa</th><th>Perlawanan</th><th>Peringkat</th><th>Status</th></tr></thead><tbody>
-  ${bundle.matches.slice(0,limit).map(m=>`<tr><td>${fmtTime(m.scheduled_at)}</td><td><strong>${teamName(tm,m.team_a_id)}</strong> <span class="subtle">vs</span> <strong>${teamName(tm,m.team_b_id)}</strong></td><td>${esc(m.round_name||stageLabels[m.stage]||m.stage||'—')}</td><td><span class="chip ${m.status==='live'?'live':m.status==='finished'?'finished':''}">${esc(m.status||'scheduled')}</span></td></tr>`).join('')}
+  ${bundle.matches.slice(0,limit).map(m=>`<tr><td>${fmtTime(m.scheduled_at)}</td><td>${teamInline(tm[m.team_a_id])} <span class="subtle">vs</span> ${teamInline(tm[m.team_b_id])}</td><td>${esc(m.round_name||stageLabels[m.stage]||m.stage||'—')}</td><td><span class="chip ${m.status==='live'?'live':m.status==='finished'?'finished':''}">${esc(m.status||'scheduled')}</span></td></tr>`).join('')}
   </tbody></table></div>`;
 }
 
 export function teamsHtml(bundle) {
   if(!bundle.teams.length) return '<div class="notice">Belum ada pasukan untuk game ini.</div>';
-  return `<div class="team-list">${bundle.teams.map((t,i)=>`<div class="team-row"><div class="team-badge">${esc(t.short_name||initials(t.name))}</div><div><strong>${esc(t.name)}</strong><div class="subtle small">No. ${t.seed_order||i+1}</div></div></div>`).join('')}</div>`;
+  return `<div class="team-list">${bundle.teams.map((t,i)=>`<div class="team-row">${logoBadge(t,'team-badge')}<div><strong>${esc(t.name)}</strong><div class="subtle small">No. ${t.seed_order||i+1}</div></div></div>`).join('')}</div>`;
 }
 
 export function nextMatchHtml(bundle) {
@@ -90,15 +104,15 @@ export function nextMatchHtml(bundle) {
   const now=Date.now();
   const next=bundle.matches.find(m=>m.status==='scheduled' && m.team_a_id && m.team_b_id && (!m.scheduled_at || new Date(m.scheduled_at).getTime()>=now)) || bundle.matches.find(m=>m.status==='scheduled'&&m.team_a_id&&m.team_b_id);
   if (!next) return `<strong>Perlawanan Seterusnya</strong><span class="subtle">Tiada jadual seterusnya.</span>`;
-  return `<strong>Perlawanan Seterusnya · ${esc(bundle.activeGame?.code?.toUpperCase()||'')}</strong><span>${teamName(tm,next.team_a_id)} <span class="subtle">vs</span> ${teamName(tm,next.team_b_id)}</span><span class="chip">${fmtTime(next.scheduled_at)} · ${esc(next.round_name||'')}</span>`;
+  return `<strong>Perlawanan Seterusnya · ${esc(bundle.activeGame?.code?.toUpperCase()||'')}</strong><span>${teamInline(tm[next.team_a_id])} <span class="subtle">vs</span> ${teamInline(tm[next.team_b_id])}</span><span class="chip">${fmtTime(next.scheduled_at)} · ${esc(next.round_name||'')}</span>`;
 }
 
 function bracketTeam(tm,m,side){
   const id=side==='a'?m.team_a_id:m.team_b_id;
   const score=side==='a'?m.team_a_score:m.team_b_score;
   const winner=m.winner_id===id&&id;
-  const name=id?teamName(tm,id):'TBD';
-  return `<div class="bracket-team ${winner?'winner':''} ${id?'':'tbd'}"><span class="team-slot"><span>${name}</span>${winner?'<span class="qualifier-badge">WIN</span>':''}</span><strong class="bracket-score">${id?(score??0):'—'}</strong></div>`;
+  const team=id?tm[id]:null;
+  return `<div class="bracket-team ${winner?'winner':''} ${id?'':'tbd'}"><span class="team-slot">${teamInline(team,'TBD')}${winner?'<span class="qualifier-badge">WIN</span>':''}</span><strong class="bracket-score">${id?(score??0):'—'}</strong></div>`;
 }
 
 export function bracketHtml(bundle) {
