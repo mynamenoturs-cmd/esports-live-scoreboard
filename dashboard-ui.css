@@ -1,40 +1,120 @@
-/* Compact public dashboard UI */
-.dashboard-topbar{padding:11px 14px;gap:12px}
-.dashboard-topbar .brand{min-width:0}
-.dashboard-topbar .brand span:last-child{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.dashboard-menu-toggle{display:none;border:1px solid rgba(255,255,255,.12);border-radius:11px;background:rgba(255,255,255,.04);color:var(--text);padding:9px 12px;font-weight:900}
-.dashboard-hero{padding:20px 24px;margin-top:16px}
+/* Premium public dashboard UI */
+.dashboard-topbar{
+  display:grid;
+  grid-template-columns:minmax(300px,1.05fr) auto minmax(380px,1fr);
+  grid-template-areas:"brand status nav";
+  align-items:center;
+  gap:14px;
+  padding:12px 14px;
+  border-color:rgba(64,230,255,.38);
+  background:
+    radial-gradient(circle at 10% 30%,rgba(64,230,255,.11),transparent 28%),
+    radial-gradient(circle at 84% 0%,rgba(255,69,230,.09),transparent 34%),
+    linear-gradient(135deg,rgba(5,13,34,.97),rgba(10,11,37,.95));
+  box-shadow:0 18px 55px rgba(0,0,0,.28),0 0 34px rgba(64,230,255,.10);
+  overflow:visible;
+}
+.dashboard-topbar::before{
+  content:"";
+  position:absolute;
+  left:16px;right:16px;bottom:-1px;height:1px;
+  background:linear-gradient(90deg,transparent,var(--cyan),var(--magenta),transparent);
+  opacity:.65;
+}
+.dashboard-brand{grid-area:brand;min-width:0;display:flex;align-items:center;gap:13px;text-transform:none;letter-spacing:normal}
+.pesmac-logo-wrap{
+  position:relative;
+  width:88px;height:68px;
+  flex:0 0 88px;
+  display:grid;place-items:center;
+  isolation:isolate;
+  animation:pesmacFloat 4.8s ease-in-out infinite;
+}
+.pesmac-logo-wrap::before{
+  content:"";position:absolute;inset:5px 7px;border-radius:50%;z-index:-1;
+  background:radial-gradient(circle,rgba(64,230,255,.18),rgba(137,92,255,.08) 44%,transparent 68%);
+  filter:blur(7px);
+  animation:pesmacAura 2.8s ease-in-out infinite;
+}
+.pesmac-logo-wrap::after{
+  content:"";position:absolute;top:3px;bottom:3px;width:18px;left:-18px;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.72),transparent);
+  transform:skewX(-18deg);filter:blur(1px);opacity:0;
+  animation:pesmacSweep 5.8s ease-in-out infinite;
+  pointer-events:none;
+}
+.pesmac-logo{display:block;width:100%;height:100%;object-fit:contain;filter:drop-shadow(0 0 9px rgba(64,230,255,.34)) drop-shadow(0 0 13px rgba(255,69,230,.18))}
+.dashboard-brand-copy{display:flex;flex-direction:column;min-width:0;line-height:1.05}
+.dashboard-brand-copy strong{font-size:clamp(.95rem,1.45vw,1.28rem);letter-spacing:.105em;font-weight:1000;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dashboard-brand-copy small{margin-top:6px;color:#8ca9cf;font-size:.75rem;font-weight:700;letter-spacing:.03em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:40vw}
+.dashboard-status-cluster{grid-area:status;display:flex;align-items:center;justify-content:center;gap:7px;min-width:0}
+.dashboard-status-chip{display:inline-flex;align-items:center;gap:7px;white-space:nowrap;border:1px solid rgba(255,255,255,.10);border-radius:999px;padding:7px 10px;background:rgba(255,255,255,.035);color:#afc2dd;font-size:.72rem;font-weight:900;letter-spacing:.07em;box-shadow:inset 0 0 18px rgba(255,255,255,.015)}
+.dashboard-status-chip.realtime{border-color:rgba(68,242,161,.27);color:#c8ffe4;background:rgba(68,242,161,.06)}
+.dashboard-status-chip.game{border-color:rgba(64,230,255,.28);color:#c8f8ff;background:rgba(64,230,255,.055)}
+.dashboard-status-chip.live-state{max-width:220px;overflow:hidden;text-overflow:ellipsis}
+.dashboard-status-chip.live-state.is-live{border-color:rgba(255,65,100,.48);color:#ffe0e7;background:rgba(255,65,100,.10);box-shadow:0 0 18px rgba(255,65,100,.10)}
+.mini-live-dot{width:7px;height:7px;border-radius:50%;background:#7e91ad;box-shadow:0 0 8px rgba(126,145,173,.55);flex:0 0 auto}
+.dashboard-status-chip.is-live .mini-live-dot{background:var(--red);box-shadow:0 0 11px var(--red);animation:pulse 1s infinite}
+.dashboard-nav{grid-area:nav;display:flex;justify-content:flex-end;flex-wrap:nowrap;gap:6px;min-width:0}
+.dashboard-nav a{padding:8px 10px;font-size:.82rem;white-space:nowrap}
+.dashboard-menu-toggle{grid-area:menu;display:none;align-items:center;justify-content:center;gap:8px;border:1px solid rgba(64,230,255,.28);border-radius:12px;background:linear-gradient(135deg,rgba(64,230,255,.09),rgba(137,92,255,.08));color:var(--text);padding:10px 13px;font-weight:900;box-shadow:0 0 18px rgba(64,230,255,.07)}
+.menu-bars{font-size:1.1rem;color:var(--cyan)}
+
+@keyframes pesmacFloat{0%,100%{transform:translateY(0) scale(1)}50%{transform:translateY(-3px) scale(1.018)}}
+@keyframes pesmacAura{0%,100%{opacity:.55;transform:scale(.95)}50%{opacity:1;transform:scale(1.08)}}
+@keyframes pesmacSweep{0%,68%{left:-20px;opacity:0}72%{opacity:.72}84%{left:96px;opacity:0}100%{left:96px;opacity:0}}
+
+.dashboard-hero{padding:20px 24px;margin-top:16px;border-color:rgba(137,92,255,.30);background:linear-gradient(135deg,rgba(11,27,61,.94),rgba(31,8,57,.86));box-shadow:0 18px 55px rgba(0,0,0,.19),0 0 36px rgba(64,230,255,.08),0 0 42px rgba(255,69,230,.055)}
 .dashboard-hero h1{font-size:clamp(2rem,4vw,3.7rem)}
 .dashboard-hero .tournament-summary{display:flex;flex-wrap:wrap;gap:9px;margin-top:15px}
 .dashboard-game-tabs{margin-top:14px!important}
-.dashboard-viewbar{position:sticky;top:82px;z-index:18;margin-top:14px;border:1px solid var(--line);border-radius:15px;padding:8px;background:rgba(6,12,30,.94);box-shadow:var(--shadow-cyan);backdrop-filter:blur(14px);display:flex;gap:7px;overflow-x:auto;scrollbar-width:none}
+.dashboard-viewbar{position:sticky;top:86px;z-index:18;margin-top:14px;border:1px solid rgba(64,230,255,.28);border-radius:15px;padding:8px;background:rgba(6,12,30,.94);box-shadow:0 12px 36px rgba(0,0,0,.20),var(--shadow-cyan);backdrop-filter:blur(16px);display:flex;gap:7px;overflow-x:auto;scrollbar-width:none}
 .dashboard-viewbar::-webkit-scrollbar{display:none}
-.dashboard-viewbtn{flex:1 0 auto;min-width:125px;border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:10px 13px;background:rgba(255,255,255,.03);color:var(--muted);font-weight:900}
+.dashboard-viewbtn{flex:1 0 auto;min-width:125px;border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:10px 13px;background:rgba(255,255,255,.03);color:var(--muted);font-weight:900;transition:.18s ease}
+.dashboard-viewbtn:hover{border-color:rgba(64,230,255,.35);color:#fff}
 .dashboard-viewbtn.active{color:#fff;border-color:rgba(64,230,255,.52);background:linear-gradient(135deg,rgba(0,174,251,.24),rgba(137,92,255,.15));box-shadow:0 0 18px rgba(64,230,255,.12)}
 .dashboard-secondary{margin-top:14px}
 .dashboard-secondary>.panel{margin-top:0}
 .dashboard-panel[hidden]{display:none!important}
 .dashboard-panel:not([hidden]){animation:dashPanelIn .18s ease-out}
 @keyframes dashPanelIn{from{opacity:.25;transform:translateY(6px)}to{opacity:1;transform:none}}
+.dashboard-panel,.dashboard-live-panel{border-color:rgba(64,230,255,.24);background:linear-gradient(180deg,rgba(9,19,44,.92),rgba(5,10,25,.94));box-shadow:0 15px 40px rgba(0,0,0,.18),0 0 28px rgba(0,174,251,.055)}
+.dashboard-panel.magenta{border-color:rgba(255,69,230,.25)}
 .dashboard-panel .table-wrap{max-height:54vh;overflow:auto}
 .dashboard-panel .team-list{max-height:54vh;overflow:auto}
 .dashboard-live-panel{margin-top:14px}
-.dashboard-next{margin-top:14px}
-.dashboard-mobile-menu{display:none;position:fixed;inset:0;z-index:120;background:rgba(0,0,0,.7);align-items:flex-end;padding:10px}
+.dashboard-live-panel .panel-head,.dashboard-panel .panel-head{background:linear-gradient(90deg,rgba(64,230,255,.035),rgba(255,69,230,.025))}
+.dashboard-next{margin-top:14px;border-color:rgba(64,230,255,.25);box-shadow:0 12px 30px rgba(0,0,0,.14)}
+
+.dashboard-mobile-menu{display:none;position:fixed;inset:0;z-index:120;background:rgba(0,0,0,.74);align-items:flex-end;padding:10px;backdrop-filter:blur(7px)}
 .dashboard-mobile-menu.open{display:flex}
-.dashboard-mobile-sheet{width:100%;max-height:82vh;overflow:auto;border:1px solid var(--line);border-radius:20px 20px 12px 12px;background:#081126;padding:15px;box-shadow:0 -20px 60px rgba(0,0,0,.5)}
+.dashboard-mobile-sheet{width:100%;max-height:82vh;overflow:auto;border:1px solid rgba(64,230,255,.30);border-radius:22px 22px 12px 12px;background:linear-gradient(180deg,#09142e,#060b1c);padding:15px;box-shadow:0 -24px 80px rgba(0,0,0,.55),0 0 34px rgba(64,230,255,.08)}
 .dashboard-mobile-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px}
 .dashboard-mobile-head h3{margin:0;text-transform:uppercase;letter-spacing:.08em}
 .dashboard-mobile-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
-.dashboard-mobile-grid a{display:block;border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:14px;background:rgba(255,255,255,.035);font-weight:850;color:var(--text)}
+.dashboard-mobile-grid a{display:block;border:1px solid rgba(255,255,255,.1);border-radius:13px;padding:14px;background:linear-gradient(135deg,rgba(255,255,255,.045),rgba(64,230,255,.025));font-weight:850;color:var(--text)}
+.dashboard-mobile-grid a:hover{border-color:rgba(64,230,255,.38)}
 .dashboard-mobile-grid a small{display:block;color:var(--muted);font-weight:600;margin-top:3px}
 .dashboard-current-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
+
+@media(max-width:1180px){
+  .dashboard-topbar{grid-template-columns:minmax(280px,1fr) auto;grid-template-areas:"brand nav" "status status"}
+  .dashboard-status-cluster{justify-content:flex-start;padding-left:100px}
+  .dashboard-brand-copy small{max-width:55vw}
+}
 @media(max-width:900px){
-  .dashboard-topbar{position:sticky;top:8px;z-index:30}
-  .dashboard-topbar .nav{display:none}
-  .dashboard-menu-toggle{display:block;margin-left:auto}
-  .dashboard-viewbar{top:76px}
-  .dashboard-hero{padding:17px 18px}
+  .dashboard-topbar{position:sticky;top:8px;z-index:30;grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"brand menu" "status status";gap:7px 10px;padding:8px 10px}
+  .dashboard-nav{display:none}
+  .dashboard-menu-toggle{display:flex}
+  .pesmac-logo-wrap{width:72px;height:55px;flex-basis:72px}
+  .dashboard-brand{gap:9px}
+  .dashboard-brand-copy strong{font-size:.92rem;letter-spacing:.08em}
+  .dashboard-brand-copy small{font-size:.66rem;margin-top:4px;max-width:56vw}
+  .dashboard-status-cluster{justify-content:flex-start;padding:2px 0 0;gap:5px;overflow-x:auto;scrollbar-width:none}
+  .dashboard-status-cluster::-webkit-scrollbar{display:none}
+  .dashboard-status-chip{padding:6px 8px;font-size:.64rem}
+  .dashboard-viewbar{top:113px}
+  .dashboard-hero{padding:17px 18px;margin-top:12px}
   .dashboard-hero .eyebrow{font-size:.7rem}
   .dashboard-hero h1{font-size:clamp(1.8rem,8vw,2.8rem)}
   .dashboard-hero p{font-size:.92rem;margin:.35rem 0}
@@ -42,13 +122,17 @@
   .dashboard-live-panel .panel-body{padding:12px}
 }
 @media(max-width:620px){
-  .shell{width:min(96vw,100%);padding-top:12px}
-  .dashboard-topbar{border-radius:14px;padding:10px 12px}
-  .dashboard-topbar .brand-mark{width:34px;height:34px}
-  .dashboard-topbar .brand span:last-child{font-size:.88rem;max-width:58vw}
-  .dashboard-hero{border-radius:18px;margin-top:12px}
+  .shell{width:min(96vw,100%);padding-top:10px}
+  .dashboard-topbar{border-radius:16px}
+  .pesmac-logo-wrap{width:66px;height:50px;flex-basis:66px}
+  .dashboard-brand-copy strong{font-size:.78rem;letter-spacing:.065em}
+  .dashboard-brand-copy small{font-size:.59rem;max-width:48vw}
+  .dashboard-menu-toggle{padding:9px 10px;font-size:.84rem}
+  .dashboard-status-chip{font-size:.60rem;padding:5px 7px}
+  .dashboard-status-chip.live-state{max-width:150px}
+  .dashboard-hero{border-radius:18px}
   .dashboard-hero .tournament-summary{margin-top:11px}
-  .dashboard-viewbar{top:68px;margin-top:10px;padding:7px}
+  .dashboard-viewbar{top:105px;margin-top:10px;padding:7px}
   .dashboard-viewbtn{min-width:108px;padding:9px 11px;font-size:.88rem}
   .dashboard-mobile-grid{grid-template-columns:1fr}
   .dashboard-panel .panel-head{padding:12px 14px}
@@ -56,4 +140,7 @@
   .dashboard-panel .table-wrap,.dashboard-panel .team-list{max-height:48vh}
   .dashboard-next{font-size:.88rem}
   .footer{font-size:.7rem;margin-top:16px}
+}
+@media(prefers-reduced-motion:reduce){
+  .pesmac-logo-wrap,.pesmac-logo-wrap::before,.pesmac-logo-wrap::after{animation:none!important}
 }
