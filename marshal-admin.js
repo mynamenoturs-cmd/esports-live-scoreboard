@@ -3,7 +3,39 @@ import { supabase, isConfigured } from './supabase-client.js';
 const $ = (s) => document.querySelector(s);
 const esc = (s='') => String(s).replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
 
-const panel = $('#marshal-management');
+function ensurePanel() {
+  let panel = $('#marshal-management');
+  if (panel) return panel;
+  const anchor = $('#tournament-generator');
+  if (!anchor) return null;
+  panel = document.createElement('section');
+  panel.id = 'marshal-management';
+  panel.className = 'panel section hidden';
+  panel.innerHTML = `
+    <div class="panel-head">
+      <div><h2>Pengurusan Marshal</h2><div class="subtle small">Admin sahaja boleh mencipta dan mengubah akses marshal.</div></div>
+      <button id="marshal-refresh" type="button" class="btn small">Refresh</button>
+    </div>
+    <div class="panel-body">
+      <div id="marshal-notice" class="notice hidden" style="margin-bottom:14px"></div>
+      <form id="marshal-form" class="form-grid">
+        <div class="field"><label>Nama Marshal</label><input id="marshal-name" placeholder="Contoh: Marshal 1"></div>
+        <div class="field"><label>Email</label><input id="marshal-email" type="email" required autocomplete="off" placeholder="marshal@example.com"></div>
+        <div class="field span-2"><label>Password Sementara</label><input id="marshal-password" type="password" minlength="8" required autocomplete="new-password" placeholder="Minimum 8 aksara"><div class="auto-seed-note">Akaun akan disahkan terus dan boleh login di /admin. Simpan password ini dan beri kepada marshal melalui saluran yang sesuai.</div></div>
+        <button class="btn primary field span-2" type="submit">+ Cipta Akaun Marshal</button>
+      </form>
+      <div class="table-wrap" style="margin-top:18px">
+        <table>
+          <thead><tr><th>Pengguna</th><th>Role</th><th>Login Terakhir</th><th>Tindakan</th></tr></thead>
+          <tbody id="marshal-table-body"><tr><td colspan="4">Memuatkan...</td></tr></tbody>
+        </table>
+      </div>
+    </div>`;
+  anchor.insertAdjacentElement('beforebegin', panel);
+  return panel;
+}
+
+const panel = ensurePanel();
 const form = $('#marshal-form');
 const body = $('#marshal-table-body');
 const notice = $('#marshal-notice');
@@ -57,7 +89,6 @@ async function loadUsers({quiet=false}={}) {
     if (!quiet) showNotice('Senarai akaun dikemas kini.', 'success');
   } catch (err) {
     const message = String(err?.message || err || '');
-    // Marshal/viewer memang tidak dibenarkan mengurus akaun. Jangan paparkan panel kepada mereka.
     if (/403|admin access|required|forbidden|non-2xx/i.test(message)) {
       panel.classList.add('hidden');
       return;
