@@ -1,0 +1,5 @@
+import { loadTournamentBundle, teamMap, subscribeTournament, applyRealtimeChange, filterBundle, gameFromLocation } from './data.js';
+let sub,root,selectedCode;
+function paint(){const bundle=filterBundle(root,selectedCode);const tm=teamMap(bundle.teams),m=bundle.matches.find(x=>x.status==='live')||bundle.matches.find(x=>x.status==='scheduled');if(!m){document.querySelector('#overlay').classList.add('hidden');return}document.querySelector('#overlay').classList.remove('hidden');document.querySelector('#game').textContent=bundle.activeGame?.code?.toUpperCase()||'';document.querySelector('#a').textContent=tm[m.team_a_id]?.name||'TBD';document.querySelector('#b').textContent=tm[m.team_b_id]?.name||'TBD';document.querySelector('#sa').textContent=m.team_a_score||0;document.querySelector('#sb').textContent=m.team_b_score||0}
+async function boot(){root=await loadTournamentBundle();selectedCode=gameFromLocation(root)?.code;paint();if(!root.demo&&!sub)sub=subscribeTournament(root.tournament.id,p=>{applyRealtimeChange(root,p);paint()})}
+boot().catch(()=>document.querySelector('#overlay').classList.add('hidden'));
