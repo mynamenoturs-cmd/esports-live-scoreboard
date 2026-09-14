@@ -34,19 +34,27 @@ export function liveMatchHtml(bundle) {
   </div>`;
 }
 
-export function standingsHtml(bundle) {
+function standingsTable(bundle,rows,title=''){
   const tm=teamMap(bundle.teams);
-  let rows=(bundle.standings||[]).map((s,i)=>({ ...s,position:s.position||i+1 }));
-  if (!rows.length) rows=bundle.teams.map((t,i)=>({team_id:t.id,position:i+1,played:0,wins:0,draws:0,losses:0,points:0}));
   const drawHead=bundle.activeGame?.allow_draws?'<th>Seri</th>':'';
   const drawCell=s=>bundle.activeGame?.allow_draws?`<td>${s.draws||0}</td>`:'';
-  if(!rows.length) return '<div class="notice">Belum ada pasukan untuk game ini.</div>';
-  return `<div class="table-wrap"><table><thead><tr><th>#</th><th>Pasukan</th><th>Main</th><th>Menang</th>${drawHead}<th>Kalah</th><th>Mata</th></tr></thead><tbody>
-    ${rows.map((s,i)=>`<tr class="${i===0?'highlight':''}"><td class="pos">${s.position||i+1}</td><td>${teamName(tm,s.team_id)}</td><td>${s.played||0}</td><td>${s.wins||0}</td>${drawCell(s)}<td>${s.losses||0}</td><td><strong>${s.points||0}</strong></td></tr>`).join('')}
+  return `${title?`<div class="group-standing-title">${esc(title)}</div>`:''}<div class="table-wrap"><table><thead><tr><th>#</th><th>Pasukan</th><th>Main</th><th>Menang</th>${drawHead}<th>Kalah</th><th>Mata</th></tr></thead><tbody>
+    ${rows.map((s,i)=>`<tr class="${i<2&&title?'highlight':i===0&&!title?'highlight':''}"><td class="pos">${s.position||i+1}</td><td>${teamName(tm,s.team_id)}</td><td>${s.played||0}</td><td>${s.wins||0}</td>${drawCell(s)}<td>${s.losses||0}</td><td><strong>${s.points||0}</strong></td></tr>`).join('')}
   </tbody></table></div>`;
 }
 
-export function scheduleHtml(bundle, limit=20) {
+export function standingsHtml(bundle) {
+  const grouped=Object.entries(bundle.groupStandings||{});
+  if(grouped.length){
+    return `<div class="group-standings">${grouped.map(([label,rows])=>`<div class="group-standing-card">${standingsTable(bundle,rows,`Kumpulan ${label}`)}</div>`).join('')}</div>`;
+  }
+  let rows=(bundle.standings||[]).map((s,i)=>({ ...s,position:s.position||i+1 }));
+  if (!rows.length) rows=bundle.teams.map((t,i)=>({team_id:t.id,position:i+1,played:0,wins:0,draws:0,losses:0,points:0}));
+  if(!rows.length) return '<div class="notice">Belum ada pasukan untuk game ini.</div>';
+  return standingsTable(bundle,rows);
+}
+
+export function scheduleHtml(bundle, limit=40) {
   const tm=teamMap(bundle.teams);
   if(!bundle.matches.length) return '<div class="notice">Belum ada jadual perlawanan.</div>';
   return `<div class="table-wrap"><table><thead><tr><th>Masa</th><th>Perlawanan</th><th>Peringkat</th><th>Status</th></tr></thead><tbody>
@@ -62,16 +70,16 @@ export function teamsHtml(bundle) {
 export function nextMatchHtml(bundle) {
   const tm=teamMap(bundle.teams);
   const now=Date.now();
-  const next=bundle.matches.find(m=>m.status==='scheduled' && (!m.scheduled_at || new Date(m.scheduled_at).getTime()>=now)) || bundle.matches.find(m=>m.status==='scheduled');
+  const next=bundle.matches.find(m=>m.status==='scheduled' && m.team_a_id && m.team_b_id && (!m.scheduled_at || new Date(m.scheduled_at).getTime()>=now)) || bundle.matches.find(m=>m.status==='scheduled'&&m.team_a_id&&m.team_b_id);
   if (!next) return `<strong>Perlawanan Seterusnya</strong><span class="subtle">Tiada jadual seterusnya.</span>`;
   return `<strong>Perlawanan Seterusnya · ${esc(bundle.activeGame?.code?.toUpperCase()||'')}</strong><span>${teamName(tm,next.team_a_id)} <span class="subtle">vs</span> ${teamName(tm,next.team_b_id)}</span><span class="chip">${fmtTime(next.scheduled_at)} · ${esc(next.round_name||'')}</span>`;
 }
 
 export function bracketHtml(bundle) {
   const tm=teamMap(bundle.teams);
-  const stageOrder=['quarterfinal','semifinal','final'];
-  const labels={quarterfinal:'Suku Akhir',semifinal:'Separuh Akhir',final:'Grand Final'};
-  const stages=stageOrder.map(stage=>[stage,bundle.matches.filter(m=>m.stage===stage)]).filter(([,ms])=>ms.length);
+  const stageOrder=['roundof16','quarterfinal','semifinal','final'];
+  const labels={roundof16:'Pusingan 16',quarterfinal:'Suku Akhir',semifinal:'Separuh Akhir',final:'Grand Final'};
+  const stages=stageOrder.map(stage=>[stage,bundle.matches.filter(m=>m.stage===stage).sort((a,b)=>(a.bracket_position||99)-(b.bracket_position||99))]).filter(([,ms])=>ms.length);
   if (!stages.length) return `<div class="notice">Belum ada perlawanan knockout untuk ${esc(bundle.activeGame?.name||'game ini')}.</div>`;
   return `<div class="bracket">${stages.map(([stage,ms])=>`<div class="round"><div class="round-title">${labels[stage]}</div>${ms.map(m=>`<div class="bracket-match"><div class="bracket-team ${m.winner_id===m.team_a_id?'winner':''}"><span>${teamName(tm,m.team_a_id)}</span><strong>${m.team_a_score??0}</strong></div><div class="bracket-team ${m.winner_id===m.team_b_id?'winner':''}"><span>${teamName(tm,m.team_b_id)}</span><strong>${m.team_b_score??0}</strong></div>${m.team_a_tiebreak!=null&&m.team_b_tiebreak!=null?`<div class="tiebreak bracket-tiebreak">Tie-break ${m.team_a_tiebreak}-${m.team_b_tiebreak}</div>`:''}</div>`).join('')}</div>`).join('')}</div>`;
 }
