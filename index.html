@@ -1,6 +1,6 @@
 <!doctype html><html lang="ms"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Live Scoreboard E-Sport</title><link rel="stylesheet" href="./styles.css"></head>
 <body><div class="shell">
-<header class="topbar"><a class="brand" href="./"><span class="brand-mark">E</span><span>Live Scoreboard E-Sport</span></a><nav class="nav"><a href="./">Dashboard</a><a id="live-link" href="./live.html" target="_blank">Live Screen</a><a id="bracket-link" href="./bracket.html">Bracket</a><a id="overlay-link" href="./overlay.html" target="_blank">OBS Overlay</a><a href="./admin.html">Admin</a></nav></header>
+<header class="topbar"><a class="brand" href="./"><span class="brand-mark">E</span><span>Live Scoreboard E-Sport</span></a><nav class="nav"><a href="./">Dashboard</a><a id="live-link" href="./live" target="_blank">Live Screen</a><a id="bracket-link" href="./bracket">Bracket</a><a id="overlay-link" href="./overlay" target="_blank">OBS Overlay</a><a href="./admin">Admin</a></nav></header>
 <div id="fatal" class="notice error hidden section"></div><div id="demo-notice" class="notice section hidden">Sistem sedang menggunakan <strong>Demo Mode</strong>.</div>
 <main id="app" class="hidden">
 <section class="hero"><div class="eyebrow">Multi-Game Tournament Control System</div><h1 class="gradient-text" id="tournament-name">Kejohanan E-Sport</h1><p class="subtle" id="tournament-meta"></p><span class="status-pill"><span class="status-dot live"></span>Broadcast Ready</span></section>
@@ -8,4 +8,4 @@
 <section class="panel section"><div class="panel-head"><h2>Perlawanan Semasa</h2><span class="chip live">LIVE SCORE</span></div><div class="panel-body" id="live-panel"></div></section>
 <section class="grid grid-3 section"><div class="panel"><div class="panel-head"><h2>Kedudukan</h2></div><div id="standings"></div></div><div class="panel"><div class="panel-head"><h2>Jadual Perlawanan</h2></div><div id="schedule"></div></div><div class="panel magenta"><div class="panel-head"><h2>Senarai Pasukan</h2></div><div class="panel-body" id="teams"></div></div></section>
 <div id="next-match" class="next-strip"></div>
-</main><footer class="footer">Realtime esports scoreboard · FIFA + MLBB · Cloudflare Pages + Supabase</footer></div><script type="module" src="./app.js"></script></body></html>
+</main><footer class="footer">Realtime esports scoreboard · FIFA + MLBB · Cloudflare Workers + Supabase</footer></div><script type="module" src="./app.js"></script></body></html>
