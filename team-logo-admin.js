@@ -4,14 +4,19 @@ const $=s=>document.querySelector(s);
 let logoRows=new Map();
 let activeTeamId='';
 
-function safeLogoUrl(value){
+function normalizeLogoUrl(value){
   const raw=String(value||'').trim();
   if(!raw)return '';
+  if((raw.startsWith('./')||raw.startsWith('/'))&&!raw.startsWith('//'))return raw;
   try{
-    const u=new URL(raw,location.origin);
+    const u=new URL(raw);
     if(!['http:','https:'].includes(u.protocol))return '';
     return u.href;
   }catch{return ''}
+}
+function displayLogoUrl(value){
+  const raw=normalizeLogoUrl(value);if(!raw)return '';
+  try{return new URL(raw,location.origin).href}catch{return ''}
 }
 function initials(name='TEAM'){return String(name).trim().split(/\s+/).map(x=>x[0]).join('').slice(0,3).toUpperCase()||'TM'}
 function showGlobal(text,type='success'){
@@ -23,7 +28,7 @@ function ensureAddField(){
   const form=$('#team-form');if(!form||$('#team-logo-url'))return;
   const short=$('#team-short')?.closest('.field');
   const field=document.createElement('div');field.className='field span-2';
-  field.innerHTML='<label>Logo Pasukan (URL · opsyenal)</label><input id="team-logo-url" type="url" inputmode="url" placeholder="https://.../logo.png"><div class="auto-seed-note">PNG, JPG, WebP atau SVG. Jika kosong, sistem guna kod ringkas/initial pasukan.</div>';
+  field.innerHTML='<label>Logo Pasukan (opsyenal)</label><input id="team-logo-url" type="text" inputmode="url" placeholder="./assets/team-logos/team.png atau https://..."><div class="auto-seed-note">Boleh guna PNG, JPG, WebP atau SVG dari repo sendiri atau URL https. Jika kosong, sistem guna kod ringkas/initial pasukan.</div>';
   short?.insertAdjacentElement('afterend',field);
 }
 function ensureModal(){
@@ -32,14 +37,14 @@ function ensureModal(){
   modal.innerHTML=`<div class="team-logo-dialog" role="dialog" aria-modal="true" aria-label="Logo pasukan">
     <div class="team-logo-dialog-head"><div><div class="eyebrow">Team Branding</div><h3 id="team-logo-title">Logo Pasukan</h3></div><button type="button" class="btn" id="team-logo-close">Tutup</button></div>
     <div class="team-logo-large-preview" id="team-logo-preview"><span>TM</span></div>
-    <div class="field"><label>URL Logo</label><input id="team-logo-edit-url" type="url" inputmode="url" placeholder="https://.../logo.png"><div class="auto-seed-note">Logo dipaparkan pada Dashboard, Live Screen, Bracket dan OBS Overlay.</div></div>
+    <div class="field"><label>Logo Pasukan</label><input id="team-logo-edit-url" type="text" inputmode="url" placeholder="./assets/team-logos/team.png atau https://..."><div class="auto-seed-note">Logo dipaparkan pada Dashboard, Live Screen, Bracket dan OBS Overlay. Fail dalam repo boleh guna path relatif.</div></div>
     <div class="actions" style="margin-top:14px"><button type="button" class="btn primary" id="team-logo-save">Simpan Logo</button><button type="button" class="btn danger" id="team-logo-clear">Buang Logo</button></div>
   </div>`;
   document.body.appendChild(modal);
 }
 function previewInto(el,url,name){
   if(!el)return;el.innerHTML='';
-  const src=safeLogoUrl(url);
+  const src=displayLogoUrl(url);
   if(src){const img=document.createElement('img');img.src=src;img.alt=`Logo ${name||'pasukan'}`;img.onerror=()=>{el.innerHTML=`<span>${initials(name)}</span>`};el.appendChild(img)}
   else{const span=document.createElement('span');span.textContent=initials(name);el.appendChild(span)}
 }
@@ -82,8 +87,8 @@ async function saveExistingLogo(clear=false){
   if(!activeTeamId)return;
   const t=logoRows.get(activeTeamId);if(!t)return;
   const raw=clear?'':($('#team-logo-edit-url')?.value||'').trim();
-  const url=raw?safeLogoUrl(raw):'';
-  if(raw&&!url)return showGlobal('URL logo tidak sah. Gunakan pautan http/https.','error');
+  const url=raw?normalizeLogoUrl(raw):'';
+  if(raw&&!url)return showGlobal('Logo tidak sah. Guna path ./assets/... atau URL http/https.','error');
   const {error}=await supabase.from('teams').update({logo_url:url||null}).eq('id',activeTeamId);
   if(error)return showGlobal(error.message,'error');
   t.logo_url=url||null;logoRows.set(activeTeamId,t);
@@ -96,8 +101,8 @@ async function addTeamWithLogo(event){
   event.preventDefault();event.stopImmediatePropagation();
   const gid=$('#team-game')?.value||'',name=$('#team-name')?.value.trim()||'',short=($('#team-short')?.value||'').trim().toUpperCase();
   if(!gid||!name)return showGlobal('Pilih game dan masukkan nama pasukan.','error');
-  const raw=($('#team-logo-url')?.value||'').trim(),logo=raw?safeLogoUrl(raw):'';
-  if(raw&&!logo)return showGlobal('URL logo tidak sah. Gunakan pautan http/https.','error');
+  const raw=($('#team-logo-url')?.value||'').trim(),logo=raw?normalizeLogoUrl(raw):'';
+  if(raw&&!logo)return showGlobal('Logo tidak sah. Guna path ./assets/... atau URL http/https.','error');
   const {data:game,error:gErr}=await supabase.from('games').select('tournament_id').eq('id',gid).single();
   if(gErr||!game?.tournament_id)return showGlobal(gErr?.message||'Tournament tidak ditemui.','error');
   const seed=Number($('#team-seed')?.value||1);
