@@ -5,6 +5,7 @@ import { generateSingleElimination, generateLeague, generateGroups, generateKnoc
 let bundle=null,players=[],activeMatch=null;
 let preferredTeamGame='';
 try{preferredTeamGame=localStorage.getItem('esports-admin-team-game')||''}catch{}
+
 const $=s=>document.querySelector(s);
 const msg=(text,type='notice')=>{const el=$('#admin-message');el.className=`notice ${type==='error'?'error':type==='success'?'success':''}`;el.textContent=text;el.classList.remove('hidden');setTimeout(()=>el.classList.add('hidden'),6000)};
 const esc=(s='')=>String(s).replace(/[&<>'\"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','\"':'&quot;'}[c]));
@@ -20,12 +21,34 @@ async function boot(){
   $('#login-view').classList.add('hidden');$('#admin-view').classList.remove('hidden');$('#whoami').textContent=access.user.email||'admin';await refresh();
 }
 
-async function refresh(){bundle=await loadTournamentBundle({forceStatic:true,preferEdge:false});if(!bundle.demo){const {data,error}=await supabase.from('players').select('id,team_id,gamer_tag,real_name,role_name,sort_order').order('sort_order',{ascending:true});if(error)throw error;players=data||[]}renderAll()}
-function renderAll(){renderGameSelectors();renderGameNameFields();renderTeams();renderMatchFormTeams();renderPlayers();renderMatches();renderLiveControl();renderGeneratorState();$('#tour-name').value=bundle.tournament.name||'';$('#tour-venue').value=bundle.tournament.venue||''}
+async function refresh(){
+  bundle=await loadTournamentBundle({forceStatic:true,preferEdge:false});
+  if(!bundle.demo){
+    const {data,error}=await supabase.from('players').select('id,team_id,gamer_tag,real_name,role_name,sort_order').order('sort_order',{ascending:true});
+    if(error)throw error;players=data||[];
+  }
+  renderAll();
+}
+
+function renderAll(){
+  renderGameSelectors();
+  ensureStationControls();
+  renderGameNameFields();
+  renderTeams();
+  renderMatchFormTeams();
+  renderPlayers();
+  renderMatches();
+  renderLiveControl();
+  renderGeneratorState();
+  $('#tour-name').value=bundle.tournament.name||'';
+  $('#tour-venue').value=bundle.tournament.venue||'';
+}
+
 function renderGameNameFields(){
   const host=$('#game-name-fields');if(!host)return;
   host.innerHTML=(bundle.games||[]).filter(g=>g.is_active!==false).map(g=>`<div class="field"><label>Nama Pertandingan ${esc(g.code.toUpperCase())}</label><input data-game-name="${g.id}" value="${esc(g.name)}" placeholder="Nama kategori yang dipaparkan"></div>`).join('');
 }
+
 function renderGameSelectors(){
   const opts=(bundle.games||[]).filter(g=>g.is_active!==false).map(g=>`<option value="${g.id}">${esc(g.code.toUpperCase())} · ${esc(g.name)}</option>`).join('');
   const codes=(bundle.games||[]).filter(g=>g.is_active!==false).map(g=>`<option value="${esc(g.code)}">${esc(g.code.toUpperCase())} · ${esc(g.name)}</option>`).join('');
@@ -36,20 +59,77 @@ function renderGameSelectors(){
     if(old&&[...el.options].some(o=>o.value===old))el.value=old;
     if(id==='team-game'&&el.value){preferredTeamGame=el.value;try{localStorage.setItem('esports-admin-team-game',preferredTeamGame)}catch{}}
   }
-  const f=$('#admin-game-filter'),old=f.value;f.innerHTML='<option value="all">Semua Game</option>'+codes;if(old&&[...f.options].some(o=>o.value===old))f.value=old;
-  const mg=$('#match-game');if(mg&&!mg.value&&mg.options.length)mg.selectedIndex=0;syncMatchDefaults();
+  const f=$('#admin-game-filter'),old=f.value;
+  f.innerHTML='<option value="all">Semua Game</option>'+codes;
+  if(old&&[...f.options].some(o=>o.value===old))f.value=old;
+  const mg=$('#match-game');if(mg&&!mg.value&&mg.options.length)mg.selectedIndex=0;
+  syncMatchDefaults();
 }
-function renderTeams(){const gm=gameMap(bundle.games);const rows=filtered(bundle.teams);$('#team-table').innerHTML=rows.map(t=>`<tr><td><span class="chip">${esc(gm[t.game_id]?.code?.toUpperCase()||'—')}</span></td><td>${esc(t.short_name||'—')}</td><td><strong>${esc(t.name)}</strong></td><td>${t.seed_order||'—'}</td><td><button class="btn danger small" data-delete-team="${t.id}">Padam</button></td></tr>`).join('')||'<tr><td colspan="5">Belum ada pasukan.</td></tr>'}
-function renderMatchFormTeams(){const gid=$('#match-game').value;const teams=bundle.teams.filter(t=>t.game_id===gid);const opts='<option value="">TBD</option>'+teams.map(t=>`<option value="${t.id}">${esc(t.name)}</option>`).join('');$('#match-a').innerHTML=opts;$('#match-b').innerHTML=opts}
-function renderPlayers(){const tm=teamMap(bundle.teams),gm=gameMap(bundle.games);const teams=filtered(bundle.teams);$('#player-team').innerHTML=teams.map(t=>`<option value="${t.id}">${esc(gm[t.game_id]?.code?.toUpperCase()||'')} · ${esc(t.name)}</option>`).join('');const allowed=new Set(teams.map(t=>t.id));const rows=players.filter(p=>allowed.has(p.team_id));$('#player-table').innerHTML=rows.map(p=>`<tr><td>${esc(gm[tm[p.team_id]?.game_id]?.code?.toUpperCase()||'—')}</td><td>${esc(tm[p.team_id]?.name||'—')}</td><td><strong>${esc(p.gamer_tag)}</strong>${p.real_name?`<div class="subtle small">${esc(p.real_name)}</div>`:''}</td><td>${esc(p.role_name||'—')}</td><td><button class="btn danger small" data-delete-player="${p.id}">Padam</button></td></tr>`).join('')||'<tr><td colspan="5">Belum ada pemain.</td></tr>'}
-function renderMatches(){const tm=teamMap(bundle.teams),gm=gameMap(bundle.games);const rows=filtered(bundle.matches);$('#match-table').innerHTML=rows.map(m=>`<tr class="${m.status==='live'?'highlight':''}"><td><span class="chip">${esc(gm[m.game_id]?.code?.toUpperCase()||'—')}</span>${m.auto_generated?' <span class="chip">AUTO</span>':''}</td><td>${fmtTime(m.scheduled_at)}</td><td>${esc(tm[m.team_a_id]?.name||'TBD')} <span class="subtle">vs</span> ${esc(tm[m.team_b_id]?.name||'TBD')}</td><td>${esc(m.round_name||'—')}</td><td>${gm[m.game_id]?.scoring_mode==='goals'?'GOALS':`BO${m.best_of||1}`}</td><td><span class="chip ${m.status==='live'?'live':m.status==='finished'?'finished':''}">${esc(m.status)}</span></td><td><div class="actions"><button class="btn small" data-control="${m.id}">Kawal</button><button class="btn danger small" data-delete-match="${m.id}">Padam</button></div></td></tr>`).join('')||'<tr><td colspan="7">Belum ada perlawanan.</td></tr>'}
+
+function ensureStationControls(){
+  if(!$('#generator-stations')){
+    const interval=$('#generator-interval');
+    if(interval){
+      const field=document.createElement('div');field.className='field';
+      field.innerHTML='<label>Jumlah Station / Setup Serentak</label><select id="generator-stations"><option value="1">1 Station</option><option value="2">2 Station</option><option value="3">3 Station</option><option value="4">4 Station</option></select><div class="auto-seed-note">Match akan diagih automatik ke station. Match dalam gelombang sama berkongsi waktu mula.</div>';
+      interval.closest('.field')?.insertAdjacentElement('afterend',field);
+    }
+  }
+  const stationSelect=$('#generator-stations');
+  if(stationSelect&&!stationSelect.dataset.ready){
+    stationSelect.dataset.ready='1';
+    const restore=()=>{const gid=$('#generator-game')?.value||'default';try{stationSelect.value=localStorage.getItem(`esports-stations-${gid}`)||'1'}catch{stationSelect.value='1'}};
+    restore();
+    stationSelect.addEventListener('change',()=>{const gid=$('#generator-game')?.value||'default';try{localStorage.setItem(`esports-stations-${gid}`,stationSelect.value)}catch{}renderGeneratorState()});
+    $('#generator-game')?.addEventListener('change',restore);
+  }
+  if(!$('#match-station')){
+    const time=$('#match-time');
+    if(time){
+      const field=document.createElement('div');field.className='field';
+      field.innerHTML='<label>Station</label><select id="match-station"><option value="1">Station 1</option><option value="2">Station 2</option><option value="3">Station 3</option><option value="4">Station 4</option></select>';
+      time.closest('.field')?.insertAdjacentElement('afterend',field);
+    }
+  }
+}
+
+function renderTeams(){
+  const gm=gameMap(bundle.games),rows=filtered(bundle.teams);
+  $('#team-table').innerHTML=rows.map(t=>`<tr><td><span class="chip">${esc(gm[t.game_id]?.code?.toUpperCase()||'—')}</span></td><td>${esc(t.short_name||'—')}</td><td><strong>${esc(t.name)}</strong></td><td>${t.seed_order||'—'}</td><td><button class="btn danger small" data-delete-team="${t.id}">Padam</button></td></tr>`).join('')||'<tr><td colspan="5">Belum ada pasukan.</td></tr>';
+}
+
+function renderMatchFormTeams(){
+  const gid=$('#match-game').value,teams=bundle.teams.filter(t=>t.game_id===gid);
+  const opts='<option value="">TBD</option>'+teams.map(t=>`<option value="${t.id}">${esc(t.name)}</option>`).join('');
+  $('#match-a').innerHTML=opts;$('#match-b').innerHTML=opts;
+}
+
+function renderPlayers(){
+  const tm=teamMap(bundle.teams),gm=gameMap(bundle.games),teams=filtered(bundle.teams);
+  $('#player-team').innerHTML=teams.map(t=>`<option value="${t.id}">${esc(gm[t.game_id]?.code?.toUpperCase()||'')} · ${esc(t.name)}</option>`).join('');
+  const allowed=new Set(teams.map(t=>t.id)),rows=players.filter(p=>allowed.has(p.team_id));
+  $('#player-table').innerHTML=rows.map(p=>`<tr><td>${esc(gm[tm[p.team_id]?.game_id]?.code?.toUpperCase()||'—')}</td><td>${esc(tm[p.team_id]?.name||'—')}</td><td><strong>${esc(p.gamer_tag)}</strong>${p.real_name?`<div class="subtle small">${esc(p.real_name)}</div>`:''}</td><td>${esc(p.role_name||'—')}</td><td><button class="btn danger small" data-delete-player="${p.id}">Padam</button></td></tr>`).join('')||'<tr><td colspan="5">Belum ada pemain.</td></tr>';
+}
+
+function renderMatches(){
+  const tm=teamMap(bundle.teams),gm=gameMap(bundle.games),rows=filtered(bundle.matches);
+  $('#match-table').innerHTML=rows.map(m=>`<tr class="${m.status==='live'?'highlight':''}"><td><span class="chip">${esc(gm[m.game_id]?.code?.toUpperCase()||'—')}</span>${m.auto_generated?' <span class="chip">AUTO</span>':''} <span class="chip">S${esc(m.station||'1')}</span></td><td>${fmtTime(m.scheduled_at)}</td><td>${esc(tm[m.team_a_id]?.name||'TBD')} <span class="subtle">vs</span> ${esc(tm[m.team_b_id]?.name||'TBD')}</td><td>${esc(m.round_name||'—')}</td><td>${gm[m.game_id]?.scoring_mode==='goals'?'GOALS':`BO${m.best_of||1}`}</td><td><span class="chip ${m.status==='live'?'live':m.status==='finished'?'finished':''}">${esc(m.status)}</span></td><td><div class="actions"><button class="btn small" data-control="${m.id}">Kawal</button><button class="btn danger small" data-delete-match="${m.id}">Padam</button></div></td></tr>`).join('')||'<tr><td colspan="7">Belum ada perlawanan.</td></tr>';
+}
+
 function renderLiveControl(){
-  const tm=teamMap(bundle.teams),gm=gameMap(bundle.games);const candidates=filtered(bundle.matches).filter(m=>m.team_a_id||m.team_b_id);
+  const tm=teamMap(bundle.teams),gm=gameMap(bundle.games),candidates=filtered(bundle.matches).filter(m=>m.team_a_id||m.team_b_id);
   activeMatch=bundle.matches.find(m=>m.id===activeMatch?.id&&(currentFilter()==='all'||gm[m.game_id]?.code===currentFilter()))||candidates.find(m=>m.status==='live')||candidates.find(m=>m.status==='scheduled'&&m.team_a_id&&m.team_b_id)||candidates[0]||null;
   if(!activeMatch){$('#control-empty').classList.remove('hidden');$('#control-box').classList.add('hidden');return}
-  const game=gm[activeMatch.game_id];$('#control-empty').classList.add('hidden');$('#control-box').classList.remove('hidden');$('#control-game').textContent=`${game?.code?.toUpperCase()||'GAME'} · ${game?.name||''}`;$('#control-round').textContent=`${activeMatch.round_name||'Perlawanan'} · ${game?.scoring_mode==='goals'?'Skor Gol':`BO${activeMatch.best_of||1}`}`;$('#control-a-name').textContent=tm[activeMatch.team_a_id]?.name||'TBD';$('#control-b-name').textContent=tm[activeMatch.team_b_id]?.name||'TBD';$('#control-a-score').textContent=activeMatch.team_a_score||0;$('#control-b-score').textContent=activeMatch.team_b_score||0;$('#control-status').textContent=activeMatch.status?.toUpperCase()||'SCHEDULED';$('#control-status').className=`chip ${activeMatch.status==='live'?'live':activeMatch.status==='finished'?'finished':''}`;
+  const game=gm[activeMatch.game_id];
+  $('#control-empty').classList.add('hidden');$('#control-box').classList.remove('hidden');
+  $('#control-game').textContent=`${game?.code?.toUpperCase()||'GAME'} · ${game?.name||''} · STATION ${activeMatch.station||'1'}`;
+  $('#control-round').textContent=`${activeMatch.round_name||'Perlawanan'} · ${game?.scoring_mode==='goals'?'Skor Gol':`BO${activeMatch.best_of||1}`}`;
+  $('#control-a-name').textContent=tm[activeMatch.team_a_id]?.name||'TBD';$('#control-b-name').textContent=tm[activeMatch.team_b_id]?.name||'TBD';
+  $('#control-a-score').textContent=activeMatch.team_a_score||0;$('#control-b-score').textContent=activeMatch.team_b_score||0;
+  $('#control-status').textContent=activeMatch.status?.toUpperCase()||'SCHEDULED';$('#control-status').className=`chip ${activeMatch.status==='live'?'live':activeMatch.status==='finished'?'finished':''}`;
   const tb=$('#tiebreak-box');tb.classList.toggle('hidden',game?.scoring_mode!=='goals');$('#tiebreak-a').value=activeMatch.team_a_tiebreak??'';$('#tiebreak-b').value=activeMatch.team_b_tiebreak??'';
 }
+
 function syncMatchDefaults(){const g=gameFor($('#match-game').value);if(!g)return;$('#match-bo').value=String(g.default_best_of||1);renderMatchFormTeams()}
 
 const boOptions=()=>'<option value="1">BO1</option><option value="3">BO3</option><option value="5">BO5</option>';
@@ -61,7 +141,7 @@ function ensureRoundBestOfControls(game){
   let host=$('#generator-round-bo-wrap');
   if(!host){
     host=document.createElement('div');host.id='generator-round-bo-wrap';host.className='field span-2';
-    host.innerHTML=`<label>Format Setiap Pusingan</label><div class="form-grid"><div class="field"><label>Pusingan 16</label><select id="generator-bo-r16" data-round-bo>${boOptions()}</select></div><div class="field"><label>Suku Akhir</label><select id="generator-bo-qf" data-round-bo>${boOptions()}</select></div><div class="field"><label>Separuh Akhir</label><select id="generator-bo-sf" data-round-bo>${boOptions()}</select></div><div class="field"><label>Grand Final</label><select id="generator-bo-final" data-round-bo>${boOptions()}</select></div></div><div class="auto-seed-note">Tetapan ini digunakan apabila jadual dijana. Contoh pantas: R16 BO1 · Suku Akhir BO1 · Separuh Akhir BO3 · Final BO5.</div>`;
+    host.innerHTML=`<label>Format Setiap Pusingan</label><div class="form-grid"><div class="field"><label>Pusingan 16</label><select id="generator-bo-r16" data-round-bo>${boOptions()}</select></div><div class="field"><label>Suku Akhir</label><select id="generator-bo-qf" data-round-bo>${boOptions()}</select></div><div class="field"><label>Separuh Akhir</label><select id="generator-bo-sf" data-round-bo>${boOptions()}</select></div><div class="field"><label>Grand Final</label><select id="generator-bo-final" data-round-bo>${boOptions()}</select></div></div><div class="auto-seed-note">Contoh: R16 BO1 · Suku Akhir BO1 · Separuh Akhir BO3 · Final BO5.</div>`;
     baseField?.insertAdjacentElement('afterend',host);
   }
   let note=$('#generator-goals-note');
@@ -72,12 +152,13 @@ function ensureRoundBestOfControls(game){
   if(host.dataset.gameId!==game.id){
     host.dataset.gameId=game.id;
     let saved=null;try{saved=JSON.parse(localStorage.getItem(`esports-bo-${game.id}`)||'null')}catch{}
-    const defaults={group:1,roundof16:1,quarterfinal:1,semifinal:3,final:5};const cfg={...defaults,...(saved||{})};
+    const defaults={group:1,roundof16:1,quarterfinal:1,semifinal:3,final:5},cfg={...defaults,...(saved||{})};
     base.value=String(cfg.group);$('#generator-bo-r16').value=String(cfg.roundof16);$('#generator-bo-qf').value=String(cfg.quarterfinal);$('#generator-bo-sf').value=String(cfg.semifinal);$('#generator-bo-final').value=String(cfg.final);
   }
 }
+
 function getRoundBestOfConfig(){return {group:Number($('#generator-bo')?.value||1),league:Number($('#generator-bo')?.value||1),roundof16:Number($('#generator-bo-r16')?.value||1),quarterfinal:Number($('#generator-bo-qf')?.value||1),semifinal:Number($('#generator-bo-sf')?.value||3),final:Number($('#generator-bo-final')?.value||5)}}
-function saveRoundBestOfPrefs(){const gid=$('#generator-game')?.value;if(!gid)return;const cfg=getRoundBestOfConfig();try{localStorage.setItem(`esports-bo-${gid}`,JSON.stringify(cfg))}catch{}}
+function saveRoundBestOfPrefs(){const gid=$('#generator-game')?.value;if(!gid)return;try{localStorage.setItem(`esports-bo-${gid}`,JSON.stringify(getRoundBestOfConfig()))}catch{}}
 async function applyRoundBestOf(gameId){
   const game=gameFor(gameId);if(!game||game.scoring_mode!=='series'||bundle.demo)return;
   const cfg=getRoundBestOfConfig();
@@ -86,55 +167,68 @@ async function applyRoundBestOf(gameId){
     if(error)throw error;
   }
 }
+
 function renderGeneratorState(){
-  const gid=$('#generator-game')?.value;const game=gameFor(gid);if(!game)return;
-  ensureRoundBestOfControls(game);
-  const teams=bundle.teams.filter(t=>t.game_id===gid);const n=teams.length,format=$('#generator-format').value;
+  const gid=$('#generator-game')?.value,game=gameFor(gid);if(!game)return;
+  ensureStationControls();ensureRoundBestOfControls(game);
+  const teams=bundle.teams.filter(t=>t.game_id===gid),n=teams.length,format=$('#generator-format').value,stations=Number($('#generator-stations')?.value||1);
   $('#generator-team-count').textContent=`${n} pasukan`;
   $('#generator-group-wrap').classList.toggle('hidden',format!=='group_knockout');
   $('#generate-knockout').classList.toggle('hidden',format!=='group_knockout');
   let hint='';
-  if(format==='single_elimination'){const size=n<2?0:2**Math.ceil(Math.log2(n));hint=n>16?'Maksimum 16 pasukan untuk bracket automatik.':`${n} pasukan → bracket ${size||'—'} slot, ${size?size-1:0} perlawanan maksimum. Pemenang akan auto-advance.`}
-  else if(format==='league') hint=`Liga penuh: ${n} pasukan menghasilkan ${n>1?n*(n-1)/2:0} perlawanan. Untuk 16 pasukan = 120 perlawanan.`;
-  else if(format==='group_knockout'){const g=Number($('#generator-groups').value||4);hint=`Pasukan dibahagi kepada ${g} kumpulan. Selepas semua match kumpulan tamat, tekan “Bina Knockout daripada Top 2”.`}
-  else hint='Mode Manual: gunakan borang “Tambah Perlawanan Manual” di bawah.';
+  if(format==='single_elimination'){const size=n<2?0:2**Math.ceil(Math.log2(n));hint=n>16?'Maksimum 16 pasukan untuk bracket automatik.':`${n} pasukan → bracket ${size||'—'} slot. ${stations} station digunakan secara serentak; pemenang auto-advance.`}
+  else if(format==='league')hint=`Liga penuh: ${n} pasukan menghasilkan ${n>1?n*(n-1)/2:0} perlawanan. ${stations} station akan mengagihkan jadual secara selari.`;
+  else if(format==='group_knockout'){const g=Number($('#generator-groups').value||4);hint=`Pasukan dibahagi kepada ${g} kumpulan dan diagih ke ${stations} station. Selepas semua match kumpulan tamat, bina Knockout daripada Top 2.`}
+  else hint='Mode Manual: gunakan borang Tambah Perlawanan Manual di bawah.';
   $('#generator-hint').textContent=hint;
 }
+
 function generatorOpts(){
   const local=$('#generator-start').value;
-  return {pairing:$('#generator-pairing').value,bestOf:Number($('#generator-bo').value||1),groupCount:Number($('#generator-groups').value||4),startAt:local?new Date(local).toISOString():null,intervalMinutes:Number($('#generator-interval').value||20)};
+  return {pairing:$('#generator-pairing').value,bestOf:Number($('#generator-bo').value||1),groupCount:Number($('#generator-groups').value||4),startAt:local?new Date(local).toISOString():null,intervalMinutes:Number($('#generator-interval').value||20),stationCount:Number($('#generator-stations')?.value||1)};
 }
 
 async function signIn(e){e.preventDefault();$('#login-error').classList.add('hidden');const email=$('#email').value.trim(),password=$('#password').value;const {error}=await supabase.auth.signInWithPassword({email,password});if(error){$('#login-error').textContent=error.message;$('#login-error').classList.remove('hidden');return}boot()}
 async function signOut(){if(supabase)await supabase.auth.signOut();location.reload()}
+
 async function addTeam(e){
   e.preventDefault();if(bundle.demo)return msg('Demo Mode.','error');
-  const gid=$('#team-game').value;
-  preferredTeamGame=gid;try{localStorage.setItem('esports-admin-team-game',gid)}catch{}
-  const existing=bundle.teams.filter(t=>t.game_id===gid);
-  const seed=Number($('#team-seed').value||existing.length+1);
+  const gid=$('#team-game').value;preferredTeamGame=gid;try{localStorage.setItem('esports-admin-team-game',gid)}catch{}
+  const existing=bundle.teams.filter(t=>t.game_id===gid),seed=Number($('#team-seed').value||existing.length+1);
   const payload={tournament_id:bundle.tournament.id,game_id:gid,name:$('#team-name').value.trim(),short_name:$('#team-short').value.trim().toUpperCase(),seed_order:seed};
   const {error}=await supabase.from('teams').insert(payload);if(error)return msg(error.message,'error');
-  $('#team-name').value='';
-  $('#team-short').value='';
-  $('#team-seed').value=String(existing.length+2);
-  msg('Pasukan/peserta ditambah.','success');
-  await refresh();
-  $('#team-name')?.focus();
+  $('#team-name').value='';$('#team-short').value='';$('#team-seed').value=String(existing.length+2);
+  msg('Pasukan/peserta ditambah.','success');await refresh();$('#team-name')?.focus();
 }
-async function addMatch(e){e.preventDefault();if(bundle.demo)return msg('Demo Mode.','error');const gid=$('#match-game').value,a=$('#match-a').value||null,b=$('#match-b').value||null;if(a&&b&&a===b)return msg('Team A dan Team B mesti berbeza.','error');const local=$('#match-time').value;const payload={tournament_id:bundle.tournament.id,game_id:gid,team_a_id:a,team_b_id:b,round_name:$('#match-round').value.trim(),stage:$('#match-stage').value,best_of:Number($('#match-bo').value),scheduled_at:local?new Date(local).toISOString():null,status:'scheduled',auto_generated:false};const {error}=await supabase.from('matches').insert(payload);if(error)return msg(error.message,'error');e.target.reset();renderGameSelectors();msg('Perlawanan ditambah.','success');await refresh()}
-async function addPlayer(e){e.preventDefault();if(bundle.demo)return msg('Demo Mode.','error');const team_id=$('#player-team').value;if(!team_id)return msg('Pilih pasukan dahulu.','error');const team=bundle.teams.find(t=>t.id===team_id),game=gameFor(team?.game_id);const current=players.filter(p=>p.team_id===team_id).length;if(game?.team_size&&current>=game.team_size&& !confirm(`${game.name} ditetapkan ${game.team_size} pemain utama. Tambah juga?`))return;const payload={team_id,gamer_tag:$('#player-tag').value.trim(),real_name:$('#player-real').value.trim()||null,role_name:$('#player-role').value.trim()||null,sort_order:current+1};const {error}=await supabase.from('players').insert(payload);if(error)return msg(error.message,'error');e.target.reset();msg('Pemain ditambah.','success');await refresh()}
+
+async function addMatch(e){
+  e.preventDefault();if(bundle.demo)return msg('Demo Mode.','error');
+  const gid=$('#match-game').value,a=$('#match-a').value||null,b=$('#match-b').value||null;if(a&&b&&a===b)return msg('Team A dan Team B mesti berbeza.','error');
+  const local=$('#match-time').value;
+  const payload={tournament_id:bundle.tournament.id,game_id:gid,team_a_id:a,team_b_id:b,round_name:$('#match-round').value.trim(),stage:$('#match-stage').value,best_of:Number($('#match-bo').value),scheduled_at:local?new Date(local).toISOString():null,station:$('#match-station')?.value||'1',status:'scheduled',auto_generated:false};
+  const {error}=await supabase.from('matches').insert(payload);if(error)return msg(error.message,'error');
+  e.target.reset();renderGameSelectors();ensureStationControls();msg('Perlawanan ditambah.','success');await refresh();
+}
+
+async function addPlayer(e){
+  e.preventDefault();if(bundle.demo)return msg('Demo Mode.','error');const team_id=$('#player-team').value;if(!team_id)return msg('Pilih pasukan dahulu.','error');
+  const team=bundle.teams.find(t=>t.id===team_id),game=gameFor(team?.game_id),current=players.filter(p=>p.team_id===team_id).length;
+  if(game?.team_size&&current>=game.team_size&&!confirm(`${game.name} ditetapkan ${game.team_size} pemain utama. Tambah juga?`))return;
+  const payload={team_id,gamer_tag:$('#player-tag').value.trim(),real_name:$('#player-real').value.trim()||null,role_name:$('#player-role').value.trim()||null,sort_order:current+1};
+  const {error}=await supabase.from('players').insert(payload);if(error)return msg(error.message,'error');e.target.reset();msg('Pemain ditambah.','success');await refresh();
+}
+
 async function saveTournament(e){
   e.preventDefault();if(bundle.demo)return msg('Demo Mode.','error');
   const name=$('#tour-name').value.trim(),venue=$('#tour-venue').value.trim();if(!name)return msg('Nama pertandingan tidak boleh kosong.','error');
   const {error}=await supabase.from('tournaments').update({name,venue}).eq('id',bundle.tournament.id);if(error)return msg(error.message,'error');
-  const fields=[...document.querySelectorAll('[data-game-name]')];
-  for(const field of fields){const gameName=field.value.trim();if(!gameName)return msg('Nama kategori pertandingan tidak boleh kosong.','error');const {error:gameError}=await supabase.from('games').update({name:gameName}).eq('id',field.dataset.gameName);if(gameError)return msg(gameError.message,'error')}
+  for(const field of [...document.querySelectorAll('[data-game-name]')]){const gameName=field.value.trim();if(!gameName)return msg('Nama kategori pertandingan tidak boleh kosong.','error');const {error:gameError}=await supabase.from('games').update({name:gameName}).eq('id',field.dataset.gameName);if(gameError)return msg(gameError.message,'error')}
   msg('Nama pertandingan berjaya dikemas kini.','success');await refresh();
 }
+
 async function generateFormat(e){
   e.preventDefault();if(bundle.demo)return msg('Demo Mode.','error');
-  const gid=$('#generator-game').value,format=$('#generator-format').value,opts=generatorOpts();const n=bundle.teams.filter(t=>t.game_id===gid).length;
+  const gid=$('#generator-game').value,format=$('#generator-format').value,opts=generatorOpts(),n=bundle.teams.filter(t=>t.game_id===gid).length;
   if(format==='manual')return msg('Mode Manual dipilih. Gunakan borang Tambah Perlawanan Manual.','notice');
   if(n<2)return msg('Tambah sekurang-kurangnya 2 pasukan dahulu.','error');
   if(format==='league'&&n>=12&&!confirm(`Liga ${n} pasukan akan menghasilkan ${n*(n-1)/2} perlawanan. Teruskan?`))return;
@@ -145,37 +239,48 @@ async function generateFormat(e){
     else if(format==='league')result=await generateLeague(bundle,gid,opts);
     else result=await generateGroups(bundle,gid,opts);
     await applyRoundBestOf(gid);saveRoundBestOfPrefs();
-    msg(`Berjaya generate ${result.matches} perlawanan${result.groups?` dalam ${result.groups} kumpulan`:''}. Format BO setiap pusingan sudah diterapkan.`,'success');await refresh();
+    msg(`Berjaya generate ${result.matches} perlawanan pada ${result.stations||opts.stationCount} station. Format BO setiap pusingan sudah diterapkan.`,'success');await refresh();
   }catch(err){msg(err.message||String(err),'error')}
 }
+
 async function buildGroupKnockout(){
   if(bundle.demo)return msg('Demo Mode.','error');const gid=$('#generator-game').value;
-  try{const result=await generateKnockoutFromGroups(bundle,gid,generatorOpts());await applyRoundBestOf(gid);saveRoundBestOfPrefs();msg(`Knockout Top 2 siap: ${result.matches} slot bracket. Format BO setiap pusingan sudah diterapkan.`,'success');await refresh()}catch(err){msg(err.message||String(err),'error')}
+  try{const result=await generateKnockoutFromGroups(bundle,gid,generatorOpts());await applyRoundBestOf(gid);saveRoundBestOfPrefs();msg(`Knockout Top 2 siap pada ${result.stations||1} station.`,'success');await refresh()}catch(err){msg(err.message||String(err),'error')}
 }
-async function clearGenerated(){
-  if(bundle.demo)return msg('Demo Mode.','error');const gid=$('#generator-game').value;if(!confirm('Padam semua perlawanan yang dijana automatik untuk game ini? Match manual kekal.'))return;
-  try{await removeAutoGeneratedMatches(bundle,gid);msg('Jadual auto dipadam.','success');await refresh()}catch(err){msg(err.message||String(err),'error')}
-}
+
+async function clearGenerated(){if(bundle.demo)return msg('Demo Mode.','error');const gid=$('#generator-game').value;if(!confirm('Padam semua perlawanan yang dijana automatik untuk game ini? Match manual kekal.'))return;try{await removeAutoGeneratedMatches(bundle,gid);msg('Jadual auto dipadam.','success');await refresh()}catch(err){msg(err.message||String(err),'error')690}
+
 async function updateScore(side,delta){if(!activeMatch)return;if(bundle.demo){activeMatch[side]=Math.max(0,(activeMatch[side]||0)+delta);renderLiveControl();return}const value=Math.max(0,(activeMatch[side]||0)+delta);const {error}=await supabase.from('matches').update({[side]:value}).eq('id',activeMatch.id);if(error)return msg(error.message,'error');activeMatch[side]=value;renderLiveControl()}
-async function saveTiebreak(){if(!activeMatch)return;const a=$('#tiebreak-a').value,b=$('#tiebreak-b').value;const payload={team_a_tiebreak:a===''?null:Number(a),team_b_tiebreak:b===''?null:Number(b)};if(bundle.demo){Object.assign(activeMatch,payload);renderLiveControl();return}const {error}=await supabase.from('matches').update(payload).eq('id',activeMatch.id);if(error)return msg(error.message,'error');Object.assign(activeMatch,payload);msg('Tie-break disimpan.','success')}
-async function setLive(){if(!activeMatch)return;if(!activeMatch.team_a_id||!activeMatch.team_b_id)return msg('Match ini masih menunggu pemenang pusingan sebelumnya.','error');if(bundle.demo){activeMatch.status='live';renderLiveControl();return}const {error}=await supabase.rpc('set_live_match',{p_match_id:activeMatch.id});if(error)return msg(error.message,'error');msg('Perlawanan kini LIVE untuk game ini.','success');await refresh()}
+async function saveTiebreak(){if(!activeMatch)return;const a=$('#tiebreak-a').value,b=$('#tiebreak-b').value,payload={team_a_tiebreak:a===''?null:Number(a),team_b_tiebreak:b===''?null:Number(b)};if(bundle.demo){Object.assign(activeMatch,payload);renderLiveControl();return}const {error}=await supabase.from('matches').update(payload).eq('id',activeMatch.id);if(error)return msg(error.message,'error');Object.assign(activeMatch,payload);msg('Tie-break disimpan.','success')}
+async function setLive(){if(!activeMatch)return;if(!activeMatch.team_a_id||!activeMatch.team_b_id)return msg('Match ini masih menunggu pemenang pusingan sebelumnya.','error');if(bundle.demo){activeMatch.status='live';renderLiveControl();return}const {error}=await supabase.rpc('set_live_match',{p_match_id:activeMatch.id});if(error)return msg(error.message,'error');msg(`Perlawanan kini LIVE di Station ${activeMatch.station||'1'}. Station lain tidak terganggu.`,'success');await refresh()}
 async function pauseMatch(){if(!activeMatch)return;if(bundle.demo){activeMatch.status='paused';renderLiveControl();return}const {error}=await supabase.from('matches').update({status:'paused'}).eq('id',activeMatch.id);if(error)return msg(error.message,'error');activeMatch.status='paused';renderLiveControl()}
+
 async function resetScore(){
   if(!activeMatch)return;if(!confirm('Reset skor perlawanan ini kepada 0-0? Jika bracket, slot pemenang di match seterusnya juga akan dikosongkan.'))return;
   const payload={team_a_score:0,team_b_score:0,team_a_tiebreak:null,team_b_tiebreak:null,winner_id:null,status:'scheduled',finished_at:null};
   if(bundle.demo){Object.assign(activeMatch,payload);renderLiveControl();return}
-  if(activeMatch.next_match_id&&activeMatch.next_match_slot){const field=activeMatch.next_match_slot==='a'?'team_a_id':'team_b_id';const next=bundle.matches.find(m=>m.id===activeMatch.next_match_id);if(next&&['live','finished'].includes(next.status)&&!confirm('Match seterusnya sudah LIVE/SELESAI. Reset boleh mengganggu bracket. Teruskan?'))return;const {error:nErr}=await supabase.from('matches').update({[field]:null}).eq('id',activeMatch.next_match_id);if(nErr)return msg(nErr.message,'error')}
+  if(activeMatch.next_match_id&&activeMatch.next_match_slot){const field=activeMatch.next_match_slot==='a'?'team_a_id':'team_b_id',next=bundle.matches.find(m=>m.id===activeMatch.next_match_id);if(next&&['live','finished'].includes(next.status)&&!confirm('Match seterusnya sudah LIVE/SELESAI. Reset boleh mengganggu bracket. Teruskan?'))return;const {error:nErr}=await supabase.from('matches').update({[field]:null}).eq('id',activeMatch.next_match_id);if(nErr)return msg(nErr.message,'error')}
   const {error}=await supabase.from('matches').update(payload).eq('id',activeMatch.id);if(error)return msg(error.message,'error');Object.assign(activeMatch,payload);renderLiveControl();await refresh();
 }
-async function finishMatch(){if(!activeMatch)return;if(!activeMatch.team_a_id||!activeMatch.team_b_id)return msg('Match ini belum mempunyai dua peserta.','error');const game=gameFor(activeMatch.game_id),a=activeMatch.team_a_score||0,b=activeMatch.team_b_score||0;if(game?.scoring_mode==='series'){if(a===b)return msg('MLBB tidak boleh tamat dengan siri seri.','error');const need=maxWins(activeMatch.best_of);if(Math.max(a,b)<need&&!confirm(`BO${activeMatch.best_of}: biasanya perlu ${need} kemenangan. Tamatkan juga?`))return}else if(a===b&&!['group','league','friendly'].includes(activeMatch.stage)&&(activeMatch.team_a_tiebreak==null||activeMatch.team_b_tiebreak==null||activeMatch.team_a_tiebreak===activeMatch.team_b_tiebreak))return msg('FIFA knockout yang seri memerlukan skor tie-break/penalti.','error');if(bundle.demo){activeMatch.status='finished';activeMatch.winner_id=a>b?activeMatch.team_a_id:b>a?activeMatch.team_b_id:null;renderLiveControl();return}const {error}=await supabase.rpc('finish_match',{p_match_id:activeMatch.id});if(error)return msg(error.message,'error');msg(activeMatch.next_match_id?'Perlawanan tamat. Pemenang auto-advance ke pusingan seterusnya.':'Perlawanan ditamatkan.','success');await refresh()}
+
+async function finishMatch(){
+  if(!activeMatch)return;if(!activeMatch.team_a_id||!activeMatch.team_b_id)return msg('Match ini belum mempunyai dua peserta.','error');
+  const game=gameFor(activeMatch.game_id),a=activeMatch.team_a_score||0,b=activeMatch.team_b_score||0;
+  if(game?.scoring_mode==='series'){if(a===b)return msg('MLBB tidak boleh tamat dengan siri seri.','error');const need=maxWins(activeMatch.best_of);if(Math.max(a,b)<need&&!confirm(`BO${activeMatch.best_of}: biasanya perlu ${need} kemenangan. Tamatkan juga?`))return}
+  else if(a===b&&!['group','league','friendly'].includes(activeMatch.stage)&&(activeMatch.team_a_tiebreak==null||activeMatch.team_b_tiebreak==null||activeMatch.team_a_tiebreak===activeMatch.team_b_tiebreak))return msg('FIFA knockout yang seri memerlukan skor tie-break/penalti.','error');
+  if(bundle.demo){activeMatch.status='finished';activeMatch.winner_id=a>b?activeMatch.team_a_id:b>a?activeMatch.team_b_id:null;renderLiveControl();return}
+  const {error}=await supabase.rpc('finish_match',{p_match_id:activeMatch.id});if(error)return msg(error.message,'error');msg(activeMatch.next_match_id?'Perlawanan tamat. Pemenang auto-advance ke pusingan seterusnya.':'Perlawanan ditamatkan.','success');await refresh();
+}
+
 async function deleteTeam(id){if(bundle.demo)return msg('Demo Mode.','error');if(!confirm('Padam pasukan ini?'))return;const {error}=await supabase.from('teams').delete().eq('id',id);if(error)return msg(error.message,'error');await refresh()}
 async function deleteMatch(id){if(bundle.demo)return msg('Demo Mode.','error');const match=bundle.matches.find(m=>m.id===id);if(match?.auto_generated&&!confirm('Ini match auto-generated. Memadam satu match boleh memutuskan bracket. Lebih selamat guna “Padam Jadual Auto”. Padam juga?'))return;if(!match?.auto_generated&&!confirm('Padam perlawanan ini?'))return;const {error}=await supabase.from('matches').delete().eq('id',id);if(error)return msg(error.message,'error');await refresh()}
 async function deletePlayer(id){if(bundle.demo)return msg('Demo Mode.','error');if(!confirm('Padam pemain ini?'))return;const {error}=await supabase.from('players').delete().eq('id',id);if(error)return msg(error.message,'error');await refresh()}
 
 $('#login-form').addEventListener('submit',signIn);$('#logout').addEventListener('click',signOut);$('#team-form').addEventListener('submit',addTeam);$('#match-form').addEventListener('submit',addMatch);$('#player-form').addEventListener('submit',addPlayer);$('#tournament-form').addEventListener('submit',saveTournament);$('#generator-form').addEventListener('submit',generateFormat);$('#generate-knockout').addEventListener('click',buildGroupKnockout);$('#clear-generated').addEventListener('click',clearGenerated);
 $('#team-game').addEventListener('change',e=>{preferredTeamGame=e.target.value;try{localStorage.setItem('esports-admin-team-game',preferredTeamGame)}catch{}});
-$('#match-game').addEventListener('change',syncMatchDefaults);$('#admin-game-filter').addEventListener('change',()=>{renderTeams();renderPlayers();renderMatches();renderLiveControl()});$('#generator-game').addEventListener('change',renderGeneratorState);$('#generator-format').addEventListener('change',renderGeneratorState);$('#generator-groups').addEventListener('change',renderGeneratorState);
+$('#match-game').addEventListener('change',syncMatchDefaults);$('#admin-game-filter').addEventListener('change',()=>{renderTeams();renderPlayers();renderMatches();renderLiveControl()});$('#generator-game').addEventListener('change',()=>{ensureStationControls();renderGeneratorState()});$('#generator-format').addEventListener('change',renderGeneratorState);$('#generator-groups').addEventListener('change',renderGeneratorState);
 document.addEventListener('change',e=>{if(e.target.matches('#generator-bo,[data-round-bo]'))saveRoundBestOfPrefs()});
 $('#score-a-plus').addEventListener('click',()=>updateScore('team_a_score',1));$('#score-a-minus').addEventListener('click',()=>updateScore('team_a_score',-1));$('#score-b-plus').addEventListener('click',()=>updateScore('team_b_score',1));$('#score-b-minus').addEventListener('click',()=>updateScore('team_b_score',-1));$('#save-tiebreak').addEventListener('click',saveTiebreak);$('#set-live').addEventListener('click',setLive);$('#pause').addEventListener('click',pauseMatch);$('#finish').addEventListener('click',finishMatch);$('#reset').addEventListener('click',resetScore);
 document.addEventListener('click',e=>{const c=e.target.closest('[data-control]');if(c){activeMatch=bundle.matches.find(m=>m.id===c.dataset.control);renderLiveControl();$('#live-control').scrollIntoView({behavior:'smooth'})}const dt=e.target.closest('[data-delete-team]');if(dt)deleteTeam(dt.dataset.deleteTeam);const dm=e.target.closest('[data-delete-match]');if(dm)deleteMatch(dm.dataset.deleteMatch);const dp=e.target.closest('[data-delete-player]');if(dp)deletePlayer(dp.dataset.deletePlayer)});
+
 boot();
