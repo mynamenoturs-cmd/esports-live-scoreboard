@@ -1,118 +1,97 @@
 # Live Scoreboard E-Sport
 
-Sistem pertandingan e-sport futuristik untuk **Cloudflare Pages + Supabase Realtime**.
+Sistem pertandingan e-sport futuristik **FIFA + MLBB** untuk **Cloudflare Pages + Supabase Realtime**.
+
+## Status projek ini
+
+- Repo production: `main`
+- Supabase production sudah disediakan dan `config.js` sudah menggunakan publishable key projek scoreboard.
+- Akaun admin pertama sudah diwujudkan dan diberi role `admin`.
+- Supabase Storage tidak digunakan.
+- Public static assets dilayan oleh Cloudflare Pages.
+- Pages Functions dihadkan kepada `/api/*` melalui `_routes.json` supaya trafik HTML/CSS/JS tidak menggunakan quota Functions.
 
 ## Fungsi siap
 
-- Dashboard awam: live score, standings, jadual, senarai team.
-- `live.html`: paparan fullscreen untuk projector/TV/LED.
-- `admin.html`: login admin/marshal, tambah team, tambah jadual, kawal skor, Start Live, Pause, Finish, Reset.
-- `bracket.html`: bracket knockout Quarter/Semi/Final.
-- `overlay.html`: overlay ringkas untuk OBS Browser Source.
-- Supabase Auth + RLS.
-- Supabase Realtime untuk perubahan `matches` dan `teams`.
-- Standings automatik berdasarkan group matches yang `finished` (3 mata bagi kemenangan).
-- Audit log untuk `set_live_match` dan `finish_match`.
-- Demo Mode jika Supabase belum dikonfigurasi.
+- Dashboard awam: live score, standings, jadual dan senarai team.
+- Multi-game: FIFA / EA SPORTS FC dan Mobile Legends: Bang Bang.
+- FIFA: goal scoring, draw untuk group/friendly, tie-break/penalti untuk knockout.
+- MLBB: BO1 / BO3 / BO5 / BO7, tanpa keputusan seri.
+- FIFA dan MLBB boleh mempunyai live match berasingan pada masa yang sama.
+- `live.html`: paparan fullscreen projector/TV/LED.
+- `admin.html`: login admin/marshal, tambah pasukan, roster, jadual dan kawal skor.
+- `bracket.html`: knockout bracket.
+- `overlay.html`: OBS Browser Source.
+- Supabase Auth + RLS + Realtime.
+- Audit log untuk tindakan penting.
+- Cloudflare edge snapshot cache di `functions/api/snapshot.js`.
 
-## 1. Cipta Supabase project
+## Cloudflare Pages deployment
 
-Guna project baru untuk scoreboard supaya tidak mengganggu database projek lain.
+Project ini ialah static site tanpa framework/build tool.
 
-Dalam **SQL Editor**:
+- Production branch: `main`
+- Framework preset: `None`
+- Build command: kosong, atau `exit 0` jika dashboard meminta command.
+- Build output directory: repository root (`.`).
+- Root directory: repository root.
 
-1. Run `supabase/schema.sql`.
-2. Run `supabase/seed.sql` jika mahu data contoh.
+Untuk mengaktifkan `/api/snapshot`, tambah dua variable pada Pages project:
 
-## 2. Cipta admin
-
-Dalam Supabase **Authentication > Users**, cipta user menggunakan email/password.
-Selepas user wujud, jalankan SQL berikut dan tukar email:
-
-```sql
-update public.profiles p
-set role='admin'
-from auth.users u
-where p.user_id=u.id and u.email='admin@example.com';
+```text
+SUPABASE_URL=https://vbmjdwjjrtpftdernmzk.supabase.co
+SUPABASE_PUBLISHABLE_KEY=<publishable key projek scoreboard>
 ```
 
-Untuk marshal, guna `role='marshal'`.
-
-## 3. Sambungkan frontend
-
-Buka `config.js` dan isi:
-
-```js
-export const CONFIG = {
-  SUPABASE_URL: 'https://YOUR_PROJECT.supabase.co',
-  SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_YOUR_KEY',
-  DEFAULT_TOURNAMENT_SLUG: 'esport-championship',
-  APP_NAME: 'Live Scoreboard E-Sport'
-};
-```
-
-**Jangan letakkan `service_role` atau secret key dalam frontend.** Gunakan publishable key (atau legacy anon key jika project lama).
-
-## 4. Test secara local
-
-Kerana projek menggunakan ES Modules, buka melalui web server, bukan `file://`.
-
-```bash
-python -m http.server 8080
-```
-
-Kemudian buka `http://localhost:8080`.
-
-## 5. Deploy ke Cloudflare Pages
-
-Cara paling mudah:
-
-- Push folder ini ke GitHub.
-- Cloudflare Dashboard > Workers & Pages > Create > Pages > Connect to Git.
-- Framework preset: `None`.
-- Build command: `exit 0` (sesuai untuk static site tanpa build step).
-- Build output directory: `/` jika repo ini hanya mengandungi scoreboard; atau folder ini jika ia subfolder.
-- Production branch: `main`.
+Publishable key memang direka untuk digunakan pada client/public app. Jangan sekali-kali masukkan `service_role` atau secret key ke frontend atau GitHub.
 
 Selepas deploy:
 
-- `/` — dashboard awam.
-- `/admin.html` — control room.
-- `/live.html` — fullscreen broadcast.
-- `/bracket.html` — bracket.
-- `/overlay.html` — OBS Browser Source.
+- `/` — dashboard awam
+- `/admin` — control room
+- `/live?game=fifa` — FIFA live screen
+- `/live?game=mlbb` — MLBB live screen
+- `/bracket?game=fifa` / `/bracket?game=mlbb` — bracket
+- `/overlay?game=fifa` / `/overlay?game=mlbb` — OBS overlay
 
 ## Aliran pertandingan
 
-1. Admin masukkan semua team.
-2. Admin masukkan jadual perlawanan.
-3. Pilih `Kawal` pada perlawanan.
-4. Tekan `START LIVE`.
-5. Referee/admin tekan `+` / `−` pada skor.
-6. Semua skrin yang membuka dashboard/live/overlay menerima update secara Realtime.
-7. Tekan `Tamat Perlawanan`; winner disimpan dan standings group dikira semula automatik.
+1. Admin login ke `/admin`.
+2. Pilih FIFA atau MLBB.
+3. Masukkan peserta/pasukan dan roster.
+4. Masukkan jadual perlawanan.
+5. Pilih `Kawal` dan tekan `START LIVE`.
+6. Perubahan skor dihantar melalui Supabase Realtime kepada live screen dan overlay.
+7. Tamatkan match untuk merekod winner dan mengemas kini standings.
 
-## Struktur utama
+## Quota guard
+
+Reka bentuk ini sengaja mengehadkan penggunaan Supabase:
+
+- Supabase Storage target: `0 MB`.
+- Supabase hanya menyimpan row kecil untuk tournament/team/player/match/Auth.
+- Realtime menghantar delta row dan tidak memuat turun semula semua data setiap perubahan skor.
+- HTML/CSS/JS dan visual statik dilayan oleh Cloudflare Pages/CDN.
+- `/api/snapshot` mempunyai edge cache supaya public initial reads tidak sentiasa pergi terus ke Supabase.
+- Lihat `QUOTA-GUARD.md` untuk soft budget dalaman.
+
+## Fail utama
 
 ```text
-index.html      public tournament dashboard
-admin.html      admin/referee control room
-live.html       projector/fullscreen live display
-bracket.html    knockout bracket
-overlay.html    OBS browser overlay
-config.js       Supabase public configuration
-supabase/
-  schema.sql    tables, RLS, Realtime, RPC
-  seed.sql      demo tournament data
+index.html                   public dashboard
+admin.html / admin.js        control room
+live.html / live.js          projector/fullscreen
+bracket.html / bracket.js    knockout bracket
+overlay.html / overlay.js    OBS overlay
+data.js                      data + Realtime + cache layer
+ui.js                        shared render components
+config.js                    public Supabase configuration
+functions/api/snapshot.js    Cloudflare edge snapshot cache
+_routes.json                 run Functions only on /api/*
+_headers                     security/cache headers
+_redirects                   friendly routes
 ```
 
 ## Nota keselamatan
 
-- Public (`anon`) hanya mempunyai SELECT pada data pertandingan.
-- Hanya `admin` / `marshal` yang boleh INSERT/UPDATE/DELETE.
-- `service_role` tidak pernah digunakan dalam browser.
-- Untuk produksi, gunakan password admin yang kuat dan jangan kongsi akaun referee.
-
-## Quota-safe architecture
-
-This build intentionally keeps Supabase lightweight. Supabase Storage is unused; Cloudflare serves application assets, while Supabase is limited to small database rows, Auth and Realtime deltas. Public initial reads can be served through the Cloudflare Pages Function in `functions/api/snapshot.js`, which caches snapshots at the edge. See `QUOTA-GUARD.md`.
+Public users hanya membaca data pertandingan. Insert/update/delete dikawal oleh Supabase RLS dan hanya role `admin` / `marshal` yang dibenarkan. `service_role` tidak digunakan dalam browser.
