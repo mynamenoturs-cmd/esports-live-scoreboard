@@ -1,6 +1,6 @@
 # Live Scoreboard E-Sport
 
-Sistem pertandingan e-sport futuristik **FIFA + MLBB** untuk **Cloudflare Pages + Supabase Realtime**.
+Sistem pertandingan e-sport futuristik **FIFA + MLBB** untuk **Cloudflare Workers + Static Assets + Supabase Realtime**.
 
 ## Status projek ini
 
@@ -8,8 +8,9 @@ Sistem pertandingan e-sport futuristik **FIFA + MLBB** untuk **Cloudflare Pages 
 - Supabase production sudah disediakan dan `config.js` sudah menggunakan publishable key projek scoreboard.
 - Akaun admin pertama sudah diwujudkan dan diberi role `admin`.
 - Supabase Storage tidak digunakan.
-- Public static assets dilayan oleh Cloudflare Pages.
-- Pages Functions dihadkan kepada `/api/*` melalui `_routes.json` supaya trafik HTML/CSS/JS tidak menggunakan quota Functions.
+- Public static assets dilayan oleh Cloudflare Static Assets.
+- Worker hanya diperlukan untuk `/api/*`, manakala HTML/CSS/JS kekal static.
+- Friendly route menggunakan `html_handling` Cloudflare; `_redirects` lama telah dibuang untuk mengelakkan redirect loop.
 
 ## Fungsi siap
 
@@ -18,25 +19,21 @@ Sistem pertandingan e-sport futuristik **FIFA + MLBB** untuk **Cloudflare Pages 
 - FIFA: goal scoring, draw untuk group/friendly, tie-break/penalti untuk knockout.
 - MLBB: BO1 / BO3 / BO5 / BO7, tanpa keputusan seri.
 - FIFA dan MLBB boleh mempunyai live match berasingan pada masa yang sama.
-- `live.html`: paparan fullscreen projector/TV/LED.
-- `admin.html`: login admin/marshal, tambah pasukan, roster, jadual dan kawal skor.
-- `bracket.html`: knockout bracket.
-- `overlay.html`: OBS Browser Source.
+- `/live`: paparan fullscreen projector/TV/LED.
+- `/admin`: login admin/marshal, tambah pasukan, roster, jadual dan kawal skor.
+- `/bracket`: knockout bracket.
+- `/overlay`: OBS Browser Source.
 - Supabase Auth + RLS + Realtime.
 - Audit log untuk tindakan penting.
-- Cloudflare edge snapshot cache di `functions/api/snapshot.js`.
+- Cloudflare edge snapshot cache di Worker `/api/snapshot`.
 
-## Cloudflare Pages deployment
-
-Project ini ialah static site tanpa framework/build tool.
+## Cloudflare deployment
 
 - Production branch: `main`
-- Framework preset: `None`
-- Build command: kosong, atau `exit 0` jika dashboard meminta command.
-- Build output directory: repository root (`.`).
-- Root directory: repository root.
-
-Untuk mengaktifkan `/api/snapshot`, tambah dua variable pada Pages project:
+- Build command: kosong
+- Deploy command: `npx wrangler deploy`
+- Root directory: repository root (`/`)
+- Runtime variables:
 
 ```text
 SUPABASE_URL=https://vbmjdwjjrtpftdernmzk.supabase.co
@@ -71,7 +68,7 @@ Reka bentuk ini sengaja mengehadkan penggunaan Supabase:
 - Supabase Storage target: `0 MB`.
 - Supabase hanya menyimpan row kecil untuk tournament/team/player/match/Auth.
 - Realtime menghantar delta row dan tidak memuat turun semula semua data setiap perubahan skor.
-- HTML/CSS/JS dan visual statik dilayan oleh Cloudflare Pages/CDN.
+- HTML/CSS/JS dan visual statik dilayan oleh Cloudflare Static Assets.
 - `/api/snapshot` mempunyai edge cache supaya public initial reads tidak sentiasa pergi terus ke Supabase.
 - Lihat `QUOTA-GUARD.md` untuk soft budget dalaman.
 
@@ -86,10 +83,9 @@ overlay.html / overlay.js    OBS overlay
 data.js                      data + Realtime + cache layer
 ui.js                        shared render components
 config.js                    public Supabase configuration
-functions/api/snapshot.js    Cloudflare edge snapshot cache
-_routes.json                 run Functions only on /api/*
+worker.js                    Cloudflare Worker untuk /api/*
+wrangler.jsonc               Worker + Static Assets configuration
 _headers                     security/cache headers
-_redirects                   friendly routes
 ```
 
 ## Nota keselamatan
