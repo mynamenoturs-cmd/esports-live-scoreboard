@@ -1,0 +1,51 @@
+/* Tournament UI polish: setup wizard, group tables and 16-team bracket */
+.generator-actions{display:flex!important;flex-wrap:wrap;gap:10px;align-items:center}
+#tournament-generator{position:relative;overflow:visible}
+#tournament-generator .panel-head{background:linear-gradient(90deg,rgba(0,174,251,.09),rgba(137,92,255,.08),rgba(255,69,230,.06))}
+#generator-hint{min-height:48px;display:flex;align-items:center}
+.auto-seed-note{margin-top:8px;color:var(--muted);font-size:.78rem}
+
+/* Group standings */
+.group-standings{display:grid;grid-template-columns:repeat(auto-fit,minmax(330px,1fr));gap:14px;padding:14px}
+.group-standing-card{border:1px solid rgba(64,230,255,.19);border-radius:14px;overflow:hidden;background:rgba(4,10,26,.46);box-shadow:0 0 24px rgba(64,230,255,.05)}
+.group-standing-title{padding:12px 14px;font-weight:1000;text-transform:uppercase;letter-spacing:.12em;color:var(--cyan);background:linear-gradient(90deg,rgba(64,230,255,.09),rgba(137,92,255,.04));border-bottom:1px solid rgba(255,255,255,.07)}
+.group-standing-card table{min-width:520px}
+.qualifier-badge{display:inline-flex;margin-left:8px;padding:3px 7px;border-radius:999px;border:1px solid rgba(68,242,161,.35);background:rgba(68,242,161,.09);color:#caffdf;font-size:.65rem;font-weight:900;letter-spacing:.06em;vertical-align:middle}
+
+/* Bracket */
+.bracket{gap:54px;padding:24px;min-height:560px;align-items:stretch}
+.bracket-round{min-width:280px;display:flex;flex-direction:column;position:relative}
+.bracket-round-head{text-align:center;margin:0 0 14px;padding:9px 12px;border:1px solid rgba(64,230,255,.2);border-radius:999px;color:var(--cyan);text-transform:uppercase;letter-spacing:.12em;font-weight:900;font-size:.76rem;background:rgba(64,230,255,.05)}
+.bracket-round-body{flex:1;display:flex;flex-direction:column;justify-content:space-around;gap:22px}
+.bracket-match{position:relative;min-height:92px;border-color:rgba(255,255,255,.13);background:linear-gradient(180deg,rgba(13,22,48,.96),rgba(5,10,25,.96))}
+.bracket-match::after{content:"";position:absolute;right:-28px;top:50%;width:28px;border-top:1px solid rgba(64,230,255,.28)}
+.bracket-round:last-child .bracket-match::after{display:none}
+.bracket-match-label{display:flex;justify-content:space-between;gap:10px;padding:6px 10px;border-bottom:1px solid rgba(255,255,255,.06);font-size:.66rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+.bracket-team{min-height:38px;align-items:center}
+.bracket-team .team-slot{display:flex;align-items:center;gap:7px;min-width:0}
+.bracket-team .team-slot span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bracket-team.winner{box-shadow:inset 3px 0 0 rgba(68,242,161,.65)}
+.bracket-team.winner strong{color:var(--green)}
+.bracket-team.tbd{opacity:.58;font-style:italic}
+.bracket-score{min-width:24px;text-align:right}
+.bracket-status{font-size:.62rem;padding:2px 6px;border-radius:999px;border:1px solid rgba(255,255,255,.1)}
+.bracket-status.live{color:#ffdce4;border-color:rgba(255,65,100,.45);background:rgba(255,65,100,.1)}
+.bracket-status.finished{color:#caffdf;border-color:rgba(68,242,161,.35);background:rgba(68,242,161,.08)}
+
+/* Public tournament summary */
+.tournament-summary{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.summary-chip{display:inline-flex;align-items:center;gap:6px;padding:6px 9px;border-radius:999px;border:1px solid rgba(255,255,255,.11);color:var(--muted);font-size:.75rem;background:rgba(255,255,255,.025)}
+
+@media(max-width:900px){
+  .bracket{gap:34px;padding:16px}
+  .bracket-round{min-width:250px}
+  .bracket-match::after{right:-18px;width:18px}
+}
+@media(max-width:620px){
+  .group-standings{grid-template-columns:1fr;padding:10px}
+  .group-standing-card table{min-width:500px}
+  .bracket{padding:12px;gap:28px;min-height:480px}
+  .bracket-round{min-width:235px}
+  .generator-actions{flex-direction:column;align-items:stretch}
+  .generator-actions .btn{width:100%}
+}
