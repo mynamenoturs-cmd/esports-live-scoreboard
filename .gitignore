@@ -1,0 +1,7 @@
+# Local and tooling files
+.env
+.env.*
+.DS_Store
+node_modules/
+.wrangler/
+.dev.vars
