@@ -1,0 +1,38 @@
+{
+  "name": "PesMAC 4.0 Live Scoreboard",
+  "short_name": "PesMAC Live",
+  "description": "Live esports scoreboard, bracket and tournament control for PesMAC 4.0.",
+  "id": "./",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone"],
+  "orientation": "any",
+  "background_color": "#050816",
+  "theme_color": "#07101f",
+  "icons": [
+    {
+      "src": "./assets/pesmac-logo.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Live MLBB",
+      "short_name": "Live",
+      "url": "./live?game=mlbb"
+    },
+    {
+      "name": "Bracket MLBB",
+      "short_name": "Bracket",
+      "url": "./bracket?game=mlbb"
+    },
+    {
+      "name": "Control Room",
+      "short_name": "Admin",
+      "url": "./admin"
+    }
+  ]
+}
