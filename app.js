@@ -3,6 +3,7 @@ import { liveMatchHtml, standingsHtml, scheduleHtml, teamsHtml, nextMatchHtml, g
 
 let sub,root,selectedCode;
 function view(){ return filterBundle(root,selectedCode); }
+function setRouteLinks(route,href){document.querySelectorAll(`[data-route="${route}"]`).forEach(a=>a.href=href)}
 function paint(){
   const b=view(); if(!b.activeGame) return;
   selectedCode=b.activeGame.code;
@@ -16,9 +17,9 @@ function paint(){
   document.querySelector('#next-match').innerHTML=nextMatchHtml(b);
   const summary=document.querySelector('#format-summary');if(summary)summary.textContent=formatSummaryText(b);
   document.querySelector('#demo-notice').classList.toggle('hidden',!root.demo);
-  document.querySelector('#live-link').href=gameUrl('./live',b.activeGame);
-  document.querySelector('#bracket-link').href=gameUrl('./bracket',b.activeGame);
-  document.querySelector('#overlay-link').href=gameUrl('./overlay',b.activeGame);
+  setRouteLinks('live',gameUrl('./live',b.activeGame));
+  setRouteLinks('bracket',gameUrl('./bracket',b.activeGame));
+  setRouteLinks('overlay',gameUrl('./overlay',b.activeGame));
   document.querySelector('#app').classList.remove('hidden');
 }
 function selectGame(code){selectedCode=code;const u=new URL(location.href);u.searchParams.set('game',code);history.replaceState({},'',u);paint()}
