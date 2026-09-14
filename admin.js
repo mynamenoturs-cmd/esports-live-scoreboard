@@ -5,7 +5,7 @@ import { generateSingleElimination, generateLeague, generateGroups, generateKnoc
 let bundle=null,players=[],activeMatch=null;
 const $=s=>document.querySelector(s);
 const msg=(text,type='notice')=>{const el=$('#admin-message');el.className=`notice ${type==='error'?'error':type==='success'?'success':''}`;el.textContent=text;el.classList.remove('hidden');setTimeout(()=>el.classList.add('hidden'),6000)};
-const esc=(s='')=>String(s).replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt',"'":'&#39;','"':'&quot;'}[c]));
+const esc=(s='')=>String(s).replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
 const currentFilter=()=>$('#admin-game-filter')?.value||'all';
 const gameFor=id=>bundle?.games?.find(g=>g.id===id);
 const filtered=(rows,key='game_id')=>currentFilter()==='all'?rows:rows.filter(r=>gameFor(r[key])?.code===currentFilter());
