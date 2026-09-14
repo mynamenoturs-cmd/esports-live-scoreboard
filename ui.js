@@ -59,7 +59,12 @@ function standingsTable(bundle,rows,title='',qualified=0){
 export function standingsHtml(bundle) {
   const grouped=Object.entries(bundle.groupStandings||{});
   if(grouped.length){
-    return `<div class="group-standings">${grouped.map(([label,rows])=>`<div class="group-standing-card">${standingsTable(bundle,rows,`Kumpulan ${label}`,2)}</div>`).join('')}</div>`;
+    return `<div class="group-standings">${grouped.map(([label,rows])=>{
+      const groupMatches=(bundle.matches||[]).filter(m=>m.stage==='group'&&m.group_name===label);
+      const complete=groupMatches.length>0&&groupMatches.every(m=>m.status==='finished');
+      const title=`Kumpulan ${label}${complete?' · Rasmi':' · Sementara'}`;
+      return `<div class="group-standing-card">${standingsTable(bundle,rows,title,complete?2:0)}</div>`;
+    }).join('')}</div>`;
   }
   let rows=(bundle.standings||[]).map((s,i)=>({ ...s,position:s.position||i+1 }));
   if (!rows.length) rows=bundle.teams.map((t,i)=>({team_id:t.id,position:i+1,played:0,wins:0,draws:0,losses:0,points:0}));
