@@ -1,6 +1,19 @@
-<!doctype html><html lang="ms"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><title>Live Scoreboard E-Sport</title><link rel="stylesheet" href="./styles.css"><link rel="stylesheet" href="./tournament-ui.css"><link rel="stylesheet" href="./dashboard-ui.css?v=dash2"></head>
+<!doctype html><html lang="ms"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><title>Live Scoreboard E-Sport</title><link rel="stylesheet" href="./styles.css"><link rel="stylesheet" href="./tournament-ui.css"><link rel="stylesheet" href="./dashboard-ui.css?v=premium1"></head>
 <body><div class="shell">
-<header class="topbar dashboard-topbar"><a class="brand" href="./"><span class="brand-mark">E</span><span>Live Scoreboard E-Sport</span></a><nav class="nav"><a href="./">Dashboard</a><a data-route="live" href="./live" target="_blank">Live Screen</a><a data-route="bracket" href="./bracket">Bracket</a><a data-route="overlay" href="./overlay" target="_blank">OBS Overlay</a><a href="./admin">Admin</a></nav><button id="dashboard-menu-toggle" class="dashboard-menu-toggle" type="button">☰ Menu</button></header>
+<header class="topbar dashboard-topbar">
+  <a class="brand dashboard-brand" href="./">
+    <span class="pesmac-logo-wrap"><img class="pesmac-logo" src="./assets/pesmac-logo.svg?v=premium1" alt="PesMAC 4.0"></span>
+    <span class="dashboard-brand-copy"><strong>LIVE SCOREBOARD E-SPORT</strong><small id="header-event">PesMAC 4.0 · Tournament Hub</small></span>
+  </a>
+  <div class="dashboard-status-cluster" aria-live="polite">
+    <span class="dashboard-status-chip realtime"><span class="status-dot"></span><span id="header-realtime">REALTIME</span></span>
+    <span class="dashboard-status-chip game" id="header-game">GAME</span>
+    <span class="dashboard-status-chip" id="header-stations">1 STATION</span>
+    <span class="dashboard-status-chip live-state" id="header-live-chip"><span class="mini-live-dot"></span><span id="header-live">READY</span></span>
+  </div>
+  <nav class="nav dashboard-nav"><a href="./">Dashboard</a><a data-route="live" href="./live" target="_blank">Live Screen</a><a data-route="bracket" href="./bracket">Bracket</a><a data-route="overlay" href="./overlay" target="_blank">OBS Overlay</a><a href="./admin">Admin</a></nav>
+  <button id="dashboard-menu-toggle" class="dashboard-menu-toggle" type="button"><span class="menu-bars">☰</span><span>Menu</span></button>
+</header>
 <div id="fatal" class="notice error hidden section"></div><div id="demo-notice" class="notice section hidden">Sistem sedang menggunakan <strong>Demo Mode</strong>.</div>
 <main id="app" class="hidden">
 <section class="hero dashboard-hero"><div class="eyebrow">Multi-Game Tournament Control System</div><h1 class="gradient-text" id="tournament-name">Kejohanan E-Sport</h1><p class="subtle" id="tournament-meta"></p><div class="tournament-summary"><span class="status-pill"><span class="status-dot live"></span>Broadcast Ready</span><span id="format-summary" class="summary-chip">Format pertandingan aktif</span></div></section>
@@ -14,5 +27,5 @@
 </div>
 <div id="next-match" class="next-strip dashboard-next"></div>
 </main><footer class="footer">Realtime esports scoreboard · FIFA + MLBB · Cloudflare Workers + Supabase</footer></div>
-<div id="dashboard-mobile-menu" class="dashboard-mobile-menu"><div class="dashboard-mobile-sheet" role="dialog" aria-modal="true" aria-label="Menu utama"><div class="dashboard-mobile-head"><div><div class="eyebrow">Live Scoreboard</div><h3>Menu Utama</h3></div><button id="dashboard-menu-close" type="button" class="btn">Tutup</button></div><div class="dashboard-mobile-grid"><a href="./">Dashboard<small>Ringkasan kejohanan</small></a><a data-route="live" href="./live" target="_blank">Live Screen<small>Paparan penuh untuk penonton</small></a><a data-route="bracket" href="./bracket">Bracket<small>Laluan knockout</small></a><a data-route="overlay" href="./overlay" target="_blank">OBS Overlay<small>Browser source untuk streaming</small></a><a href="./admin">Admin<small>Control Room marshal/admin</small></a></div></div></div>
-<script type="module" src="./app.js?v=dash2"></script><script type="module" src="./dashboard-ui.js?v=dash2"></script></body></html>
+<div id="dashboard-mobile-menu" class="dashboard-mobile-menu"><div class="dashboard-mobile-sheet" role="dialog" aria-modal="true" aria-label="Menu utama"><div class="dashboard-mobile-head"><div><div class="eyebrow">PesMAC 4.0</div><h3>Menu Utama</h3></div><button id="dashboard-menu-close" type="button" class="btn">Tutup</button></div><div class="dashboard-mobile-grid"><a href="./">Dashboard<small>Ringkasan kejohanan</small></a><a data-route="live" href="./live" target="_blank">Live Screen<small>Paparan penuh untuk penonton</small></a><a data-route="bracket" href="./bracket">Bracket<small>Laluan knockout</small></a><a data-route="overlay" href="./overlay" target="_blank">OBS Overlay<small>Browser source untuk streaming</small></a><a href="./admin">Admin<small>Control Room marshal/admin</small></a></div></div></div>
+<script type="module" src="./app.js?v=premium1"></script><script type="module" src="./dashboard-ui.js?v=premium1"></script></body></html>
