@@ -12,7 +12,7 @@
   "theme_color": "#07101f",
   "icons": [
     {
-      "src": "./assets/pesmac-logo.svg",
+      "src": "./assets/pesmac-app-icon.svg",
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any maskable"
