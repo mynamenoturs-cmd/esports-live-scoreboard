@@ -1,1 +1,15 @@
-<!doctype html><html lang="ms" style="background:transparent!important"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>OBS Overlay</title><link rel="stylesheet" href="./styles.css"><style>html,body{background:transparent!important}body::before{display:none!important}</style></head><body class="overlay-mode"><div id="overlay" class="overlay-box"><div class="overlay-game" id="game">GAME</div><div id="a" class="overlay-team">TEAM A</div><div class="overlay-score"><span id="sa">0</span><span>—</span><span id="sb">0</span></div><div id="b" class="overlay-team right">TEAM B</div></div><script type="module" src="./overlay.js?v=multistation1"></script></body></html>
+<!doctype html><html lang="ms" style="background:transparent!important"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>OBS Overlay</title><link rel="stylesheet" href="./styles.css"><style>
+html,body{background:transparent!important}body::before{display:none!important}
+.overlay-multiview{position:fixed;left:24px;right:24px;bottom:24px;display:grid;grid-template-columns:repeat(auto-fit,minmax(360px,1fr));gap:12px;align-items:end;z-index:10}
+.overlay-station-card{min-width:0;border:1px solid rgba(64,230,255,.45);border-radius:16px;background:linear-gradient(135deg,rgba(5,10,26,.92),rgba(20,8,40,.9));box-shadow:0 0 28px rgba(64,230,255,.16);overflow:hidden;color:#fff;backdrop-filter:blur(10px)}
+.overlay-station-card.is-live{border-color:rgba(255,65,100,.68);box-shadow:0 0 30px rgba(255,65,100,.18)}
+.overlay-station-head{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:9px 13px;border-bottom:1px solid rgba(255,255,255,.09);font-weight:900;letter-spacing:.08em;font-size:.78rem}
+.overlay-mini-status{font-size:.7rem;color:#b9c9df;white-space:nowrap}.is-live .overlay-mini-status{color:#ffdce4}
+.overlay-station-match{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;gap:10px;padding:14px 13px 10px}
+.overlay-station-team{display:flex;align-items:center;justify-content:space-between;gap:10px;min-width:0}.overlay-station-team.right{text-align:right}
+.overlay-station-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:900;text-transform:uppercase;font-size:clamp(.9rem,1.35vw,1.3rem)}
+.overlay-station-team strong{font-size:clamp(1.8rem,2.4vw,3rem);line-height:1;color:#40e6ff}.overlay-station-team.right strong{color:#ff45e6}
+.overlay-station-vs{font-size:.72rem;color:#91a8c9;font-weight:900}
+.overlay-station-round{padding:0 13px 10px;text-align:center;color:#91a8c9;font-size:.72rem;text-transform:uppercase;letter-spacing:.08em}
+@media(max-width:900px){.overlay-multiview{left:12px;right:12px;bottom:12px;grid-template-columns:1fr}.overlay-station-card{border-radius:12px}.overlay-station-match{padding:10px}.overlay-station-name{font-size:.9rem}}
+</style></head><body class="overlay-mode"><div id="overlay" class="overlay-box"><div class="overlay-game" id="game">GAME</div><div id="a" class="overlay-team">TEAM A</div><div class="overlay-score"><span id="sa">0</span><span>—</span><span id="sb">0</span></div><div id="b" class="overlay-team right">TEAM B</div></div><script type="module" src="./overlay.js?v=multiview2"></script></body></html>
