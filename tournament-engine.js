@@ -194,8 +194,69 @@ function installGeneratorGameGuard(){
   setTimeout(restore,0);
 }
 
+function installGroupKnockoutButtonGuard(){
+  const button=document.querySelector('#generate-knockout');
+  const generator=document.querySelector('#generator-game');
+  const format=document.querySelector('#generator-format');
+  const table=document.querySelector('#match-table');
+  if(!button||!generator||!format||button.dataset.stateGuard)return;
+  button.dataset.stateGuard='1';
+  let timer=null,requestId=0;
+  const setState=(state,finished=0,total=0,groups=0)=>{
+    if(format.value!=='group_knockout'||state==='none'){
+      button.classList.add('hidden');
+      button.disabled=true;
+      button.removeAttribute('aria-disabled');
+      button.title='';
+      return;
+    }
+    button.classList.remove('hidden');
+    if(state==='built'){
+      button.disabled=true;
+      button.setAttribute('aria-disabled','true');
+      button.textContent='✓ Knockout Sudah Dibina';
+      button.title='Bracket knockout untuk game ini sudah wujud.';
+      return;
+    }
+    if(state==='waiting'){
+      button.disabled=true;
+      button.setAttribute('aria-disabled','true');
+      button.textContent=`Selesaikan Kumpulan (${finished}/${total})`;
+      button.title='Butang akan aktif automatik selepas semua perlawanan kumpulan selesai.';
+      return;
+    }
+    button.disabled=false;
+    button.removeAttribute('aria-disabled');
+    button.textContent=groups>=4?'Bina Suku Akhir daripada 2 Terbaik Setiap Kumpulan':'Bina Separuh Akhir daripada 2 Terbaik Setiap Kumpulan';
+    button.title='Semua perlawanan kumpulan selesai. Tekan untuk membina bracket knockout.';
+  };
+  const refresh=async()=>{
+    const id=++requestId;
+    if(format.value!=='group_knockout'){setState('none');return}
+    const gameId=generator.value;
+    if(!gameId){setState('none');return}
+    const {data,error}=await supabase.from('matches').select('id,stage,status,group_name,auto_generated').eq('game_id',gameId).eq('auto_generated',true).in('stage',['group','roundof16','quarterfinal','semifinal','final']);
+    if(id!==requestId)return;
+    if(error){button.classList.remove('hidden');button.disabled=true;button.textContent='Status Knockout Tidak Dapat Disemak';button.title=error.message||'Gagal menyemak status pertandingan.';return}
+    const rows=data||[];
+    const groupsRows=rows.filter(m=>m.stage==='group');
+    const knockoutRows=rows.filter(m=>KNOCKOUT_STAGES.includes(m.stage));
+    if(!groupsRows.length){setState('none');return}
+    if(knockoutRows.length){setState('built');return}
+    const finished=groupsRows.filter(m=>m.status==='finished').length;
+    const groups=new Set(groupsRows.map(m=>m.group_name).filter(Boolean)).size;
+    if(finished<groupsRows.length){setState('waiting',finished,groupsRows.length,groups);return}
+    setState('ready',finished,groupsRows.length,groups);
+  };
+  const schedule=()=>{clearTimeout(timer);timer=setTimeout(refresh,120)};
+  generator.addEventListener('change',schedule);
+  format.addEventListener('change',schedule);
+  if(table)new MutationObserver(schedule).observe(table,{childList:true,subtree:true,characterData:true});
+  schedule();
+}
+
 if(typeof document!=='undefined'){
-  const install=()=>{installStationSelector();installGeneratorGameGuard()};
+  const install=()=>{installStationSelector();installGeneratorGameGuard();installGroupKnockoutButtonGuard()};
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install,{once:true});
   else queueMicrotask(install);
 }
