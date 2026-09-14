@@ -1,5 +1,5 @@
 import { loadTournamentBundle, subscribeTournament, applyRealtimeChange, filterBundle, gameFromLocation, gameUrl } from './data.js';
-import { liveMatchHtml, standingsHtml, scheduleHtml, teamsHtml, nextMatchHtml, gameTabsHtml, formatSummaryText } from './ui.js';
+import { liveMatchHtml, standingsHtml, scheduleHtml, teamsHtml, nextMatchHtml, gameTabsHtml, formatSummaryText } from './ui.js?v=teamlogo1';
 
 let sub,root,selectedCode;
 function view(){ return filterBundle(root,selectedCode); }
