@@ -1,3 +1,4 @@
+import './series-style-loader.js?v=series1';
 import { loadTournamentBundle, teamMap, subscribeTournament, applyRealtimeChange, filterBundle, gameFromLocation, initials } from './data.js';
 
 let sub,root,selectedCode;
