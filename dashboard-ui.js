@@ -18,9 +18,10 @@ function openMenu(){document.querySelector('#dashboard-mobile-menu')?.classList.
 function closeMenu(){document.querySelector('#dashboard-mobile-menu')?.classList.remove('open')}
 
 function boot(){
-  setPanel(current);
+  setPanel(location.hash==='#statistics'?'statistics':current);
   document.addEventListener('click',e=>{
-    const tab=e.target.closest('[data-dashboard-view]');if(tab){setPanel(tab.dataset.dashboardView);return}
+    const stats=e.target.closest('[data-open-statistics]');if(stats){e.preventDefault();setPanel('statistics');closeMenu();history.replaceState({},'',`${location.pathname}${location.search}#statistics`);return}
+    const tab=e.target.closest('[data-dashboard-view]');if(tab){setPanel(tab.dataset.dashboardView);if(tab.dataset.dashboardView!=='statistics'&&location.hash==='#statistics')history.replaceState({},'',`${location.pathname}${location.search}`);return}
     if(e.target.closest('#dashboard-menu-toggle')){openMenu();return}
     if(e.target.closest('#dashboard-menu-close')){closeMenu();return}
     if(e.target.id==='dashboard-mobile-menu'){closeMenu();return}
