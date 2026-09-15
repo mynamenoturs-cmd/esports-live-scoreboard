@@ -1,0 +1,37 @@
+/* MLBB series scoring: game wins are shown as illuminated pips, never as kill totals. */
+.series-pips{display:inline-flex;align-items:center;gap:8px;min-height:18px}
+.series-pip{width:15px;height:15px;border-radius:4px;transform:rotate(45deg);border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.035);box-shadow:inset 0 0 8px rgba(255,255,255,.025);transition:.2s ease}
+.series-pips.a .series-pip.on{background:linear-gradient(135deg,#9ff6ff,#00aefb);border-color:#83f5ff;box-shadow:0 0 11px rgba(64,230,255,.85),0 0 24px rgba(0,174,251,.34)}
+.series-pips.b .series-pip.on{background:linear-gradient(135deg,#ff9af0,#ff45e6);border-color:#ff9aef;box-shadow:0 0 11px rgba(255,69,230,.82),0 0 24px rgba(255,69,230,.3)}
+.series-pips.compact{gap:5px}.series-pips.compact .series-pip{width:10px;height:10px;border-radius:3px}
+.series-team-meta{display:flex;align-items:center;gap:9px;margin-top:10px;color:var(--muted);font-size:.67rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase}
+.team-side.right .series-team-meta{justify-content:flex-end}
+.series-core-label{display:grid;place-items:center;gap:4px;padding:14px 18px;border:1px solid rgba(255,255,255,.1);border-radius:15px;background:linear-gradient(135deg,rgba(64,230,255,.06),rgba(255,69,230,.05));min-width:150px}
+.series-core-label strong{font-size:clamp(1.7rem,4vw,3.2rem);line-height:1;color:#fff;letter-spacing:.06em;text-shadow:0 0 24px rgba(137,92,255,.35)}
+.series-core-label span{font-size:.68rem;color:var(--muted);font-weight:900;letter-spacing:.12em;text-transform:uppercase}
+.bracket-series-score{display:flex;align-items:center;justify-content:flex-end;min-width:58px}
+
+.mlbb-series-control{margin:12px 0 4px;border:1px solid rgba(137,92,255,.3);border-radius:18px;padding:15px;background:linear-gradient(135deg,rgba(12,20,48,.94),rgba(28,8,48,.86));box-shadow:0 0 28px rgba(137,92,255,.08)}
+.mlbb-series-title{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px}
+.mlbb-series-title strong{text-transform:uppercase;letter-spacing:.08em}
+.mlbb-series-scoreboard{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);gap:12px;align-items:center;margin-bottom:14px}
+.mlbb-series-team{border:1px solid rgba(255,255,255,.09);border-radius:14px;padding:13px;text-align:center;background:rgba(255,255,255,.025)}
+.mlbb-series-team.a{border-color:rgba(64,230,255,.23)}.mlbb-series-team.b{border-color:rgba(255,69,230,.23)}
+.mlbb-series-name{font-weight:1000;text-transform:uppercase;margin-bottom:10px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mlbb-series-vs{font-weight:1000;color:var(--muted)}
+.mlbb-game-entry{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding-top:13px;border-top:1px solid rgba(255,255,255,.08)}
+.mlbb-game-entry .span-2{grid-column:span 2}
+.mlbb-winner-actions{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.mlbb-game-history{display:grid;gap:7px;margin-top:12px}
+.mlbb-game-row{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:10px;padding:9px 10px;border:1px solid rgba(255,255,255,.07);border-radius:10px;background:rgba(255,255,255,.025)}
+.mlbb-game-row .winner{font-weight:900}.mlbb-game-row .kills{font-size:.8rem;color:var(--muted)}
+.mlbb-series-ready{margin-top:10px;text-align:center;color:#caffdf;font-size:.78rem;font-weight:900;letter-spacing:.08em;text-transform:uppercase}
+.overlay-series-label{display:grid;place-items:center;gap:3px;min-width:74px;color:#fff;font-weight:1000}.overlay-series-label small{font-size:.62rem;color:#9eb1cc;letter-spacing:.09em}
+.overlay-team-series{display:grid;gap:5px}.overlay-team-wrap.right+.overlay-team-series{justify-items:end}
+
+@media(max-width:720px){
+ .series-pip{width:12px;height:12px;border-radius:3px}.series-pips{gap:6px}
+ .series-core-label{min-width:110px;padding:10px}.series-core-label strong{font-size:1.7rem}
+ .mlbb-series-scoreboard{grid-template-columns:1fr auto 1fr;gap:7px}.mlbb-series-team{padding:10px 7px}
+ .mlbb-game-entry{grid-template-columns:1fr}.mlbb-game-entry .span-2{grid-column:auto}.mlbb-winner-actions{grid-template-columns:1fr}
+}
