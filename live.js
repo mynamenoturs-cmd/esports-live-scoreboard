@@ -1,6 +1,7 @@
-import './series-style-loader.js?v=series1';
+import './series-style-loader.js?v=series3';
+import './mlbb-result-public.js?v=series3';
 import { loadTournamentBundle, subscribeTournament, applyRealtimeChange, filterBundle, gameFromLocation } from './data.js';
-import { liveMatchHtml, nextMatchHtml, gameTabsHtml } from './ui.js?v=series1';
+import { liveMatchHtml, nextMatchHtml, gameTabsHtml } from './ui.js?v=series3';
 let sub,root,selectedCode,countdownTimer;
 const selectedStation=()=>{try{return new URLSearchParams(location.search).get('station')||''}catch{return ''}};
 function stationBundle(bundle,station){return station?{...bundle,matches:bundle.matches.filter(m=>String(m.station||'1')===String(station))}:bundle}
