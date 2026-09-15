@@ -1,6 +1,6 @@
-import './series-style-loader.js?v=series1';
+import './series-style-loader.js?v=series3';
 import { loadTournamentBundle, subscribeTournament, applyRealtimeChange, filterBundle, gameFromLocation } from './data.js';
-import { bracketHtml, gameTabsHtml } from './ui.js?v=series1';
+import { bracketHtml, gameTabsHtml } from './ui.js?v=series3';
 let sub,root,selectedCode;
 function paint(){const b=filterBundle(root,selectedCode);if(!b.activeGame)return;selectedCode=b.activeGame.code;document.querySelector('#name').textContent=`${root.tournament.name} · ${b.activeGame.name}`;document.querySelector('#game-tabs').innerHTML=gameTabsHtml(root,selectedCode);document.querySelector('#bracket').innerHTML=bracketHtml(b)}
 function selectGame(code){selectedCode=code;const u=new URL(location.href);u.searchParams.set('game',code);history.replaceState({},'',u);paint()}
