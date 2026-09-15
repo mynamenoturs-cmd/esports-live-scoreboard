@@ -48,7 +48,7 @@ export function liveMatchHtml(bundle) {
   const isLive=live.status==='live',isSeries=bundle.activeGame?.scoring_mode==='series',target=seriesTarget(live);
   const tb=(live.team_a_tiebreak!=null&&live.team_b_tiebreak!=null)?`<div class="tiebreak">Tie-break / Penalti ${live.team_a_tiebreak} — ${live.team_b_tiebreak}</div>`:'';
   return `
-  <div class="live-card">
+  <div class="live-card" data-live-match-id="${esc(live.id||'')}" data-team-a-id="${esc(live.team_a_id||'')}" data-team-b-id="${esc(live.team_b_id||'')}">
     <div class="team-side">
       ${logoBadge(a,'team-logo','A')}
       <div><div class="kicker">${esc(bundle.activeGame?.code?.toUpperCase()||'GAME')} · ${esc(live.round_name||'Perlawanan')}</div><div class="team-name">${esc(a?.name||'TBD')}</div>${isSeries?`<div class="series-team-meta">${seriesPips(live.team_a_score,target,'a')}<span>Game Win</span></div>`:''}</div>
