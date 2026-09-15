@@ -1,4 +1,4 @@
-const CACHE='pesmac-live-v10';
+const CACHE='pesmac-live-v11';
 const STATIC=[
   './','./index.html','./live.html','./bracket.html','./overlay.html',
   './styles.css','./tournament-ui.css','./dashboard-ui.css','./team-logo.css','./series-score.css','./pwa.css','./live-fix.css','./live-premium.css','./winner-splash.css',
