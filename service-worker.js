@@ -1,7 +1,7 @@
-const CACHE='pesmac-live-v13';
+const CACHE='pesmac-live-v14';
 const STATIC=[
   './','./index.html','./live.html','./bracket.html','./overlay.html',
-  './styles.css','./tournament-ui.css','./dashboard-ui.css','./team-logo.css','./series-score.css','./pwa.css','./live-fix.css','./live-premium.css','./winner-splash.css',
+  './styles.css','./tournament-ui.css','./dashboard-ui.css','./team-logo.css','./series-score.css','./pwa.css','./live-fix.css','./live-premium.css','./winner-splash.css','./winner-manual.css',
   './app.js','./dashboard-ui.js','./live.js','./bracket.js','./overlay.js','./ui.js','./data.js','./config.js','./supabase-client.js','./pwa.js','./series-style-loader.js','./mlbb-series-control.js','./mlbb-result-public.js','./mlbb-only-admin.js',
   './manifest.webmanifest','./assets/pesmac-logo.svg','./assets/pesmac-app-icon.svg','./assets/pesmac-icon-192.png'
 ];
