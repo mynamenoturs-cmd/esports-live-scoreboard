@@ -1,3 +1,4 @@
+import './mlbb-live-guard.js?v=liveguard1';
 import { supabase, isConfigured } from './supabase-client.js';
 
 const $=s=>document.querySelector(s);
