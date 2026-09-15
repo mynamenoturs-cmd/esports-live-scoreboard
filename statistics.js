@@ -15,9 +15,17 @@ function teamLogo(team){
 }
 function teamById(id){return bundle?.teams?.find(t=>t.id===id)||null}
 function matchById(id){return bundle?.matches?.find(m=>m.id===id)||null}
-function grouped(){
+function officialRows(){
+  return rows.filter(row=>{
+    const match=matchById(row.match_id);if(!match?.started_at)return false;
+    const started=new Date(match.started_at).getTime(),created=new Date(row.created_at||0).getTime();
+    if(!Number.isFinite(started)||!Number.isFinite(created))return false;
+    return created>=started;
+  });
+}
+function grouped(source=officialRows()){
   const map=new Map();
-  for(const row of rows){if(!map.has(row.match_id))map.set(row.match_id,[]);map.get(row.match_id).push(row)}
+  for(const row of source){if(!map.has(row.match_id))map.set(row.match_id,[]);map.get(row.match_id).push(row)}
   return [...map.entries()].map(([matchId,games])=>{
     games.sort((a,b)=>Number(a.game_number||0)-Number(b.game_number||0));
     return {match:matchById(matchId),games};
@@ -56,15 +64,15 @@ function card({match,games}){
     <details class="stats-details"><summary>Butiran setiap game</summary><div class="stats-game-list">${games.map(g=>gameRow(match,g)).join('')}</div></details>
   </article>`;
 }
-function topMvp(){
-  const counts=new Map();for(const r of rows){const n=String(r.mvp_name||'').trim();if(n)counts.set(n,(counts.get(n)||0)+1)}
+function topMvp(source){
+  const counts=new Map();for(const r of source){const n=String(r.mvp_name||'').trim();if(n)counts.set(n,(counts.get(n)||0)+1)}
   return [...counts.entries()].sort((a,b)=>b[1]-a[1]||a[0].localeCompare(b[0]))[0]||null;
 }
 function paint(){
   const host=$('#statistics');if(!host)return;
-  const groups=grouped();
-  if(!groups.length){host.innerHTML='<div class="notice">Belum ada statistik game MLBB yang direkodkan.</div>';return}
-  const totalGames=rows.length,totalKills=rows.reduce((n,r)=>n+Number(r.team_a_points||0)+Number(r.team_b_points||0),0),mvp=topMvp();
+  const official=officialRows(),groups=grouped(official);
+  if(!groups.length){host.innerHTML='<div class="notice">Belum ada statistik rasmi. Statistik hanya mula dikira selepas marshal menekan START LIVE.</div>';return}
+  const totalGames=official.length,totalKills=official.reduce((n,r)=>n+Number(r.team_a_points||0)+Number(r.team_b_points||0),0),mvp=topMvp(official);
   host.innerHTML=`<div class="stats-overview"><div><small>PERLAWANAN DIREKOD</small><strong>${groups.length}</strong></div><div><small>GAME OFFICIAL</small><strong>${totalGames}</strong></div><div><small>TOTAL KILL KEJOHANAN</small><strong>${totalKills}</strong></div><div><small>TOP MVP</small><strong>${esc(mvp?.[0]||'—')}</strong><span>${mvp?`${mvp[1]}× MVP`:'Belum ada'}</span></div></div><div class="stats-match-list">${groups.map(card).join('')}</div>`;
 }
 async function loadRows(){
@@ -92,7 +100,7 @@ function bindRealtime(){
 }
 function acceptBundle(next){
   if(!next?.activeGame||next.activeGame.code!=='mlbb')return;
-  bundle=next;loadRows();bindRealtime();
+  bundle=next;loadRows();bindRealtime();paint();
 }
 window.addEventListener('pesmac-dashboard-data',e=>acceptBundle(e.detail));
 window.addEventListener('beforeunload',()=>{if(channel&&supabase)supabase.removeChannel(channel)});
