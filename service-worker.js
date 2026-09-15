@@ -1,8 +1,8 @@
-const CACHE='pesmac-live-v4';
+const CACHE='pesmac-live-v5';
 const STATIC=[
   './','./index.html','./live.html','./bracket.html','./overlay.html',
-  './styles.css','./tournament-ui.css','./dashboard-ui.css','./team-logo.css','./pwa.css','./live-fix.css',
-  './app.js','./dashboard-ui.js','./live.js','./bracket.js','./overlay.js','./ui.js','./data.js','./config.js','./supabase-client.js','./pwa.js',
+  './styles.css','./tournament-ui.css','./dashboard-ui.css','./team-logo.css','./series-score.css','./pwa.css','./live-fix.css',
+  './app.js','./dashboard-ui.js','./live.js','./bracket.js','./overlay.js','./ui.js','./data.js','./config.js','./supabase-client.js','./pwa.js','./series-style-loader.js','./mlbb-series-admin.js',
   './manifest.webmanifest','./assets/pesmac-logo.svg','./assets/pesmac-app-icon.svg','./assets/pesmac-icon-192.png'
 ];
 self.addEventListener('install',event=>{
