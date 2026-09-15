@@ -2,7 +2,7 @@ import { supabase, isConfigured } from './supabase-client.js';
 
 const cache=new Map();
 let timer=null,channel=null;
-const esc=(s='')=>String(s).replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
+const esc=(s='')=>String(s).replace(/[&<>'\"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','\"':'&quot;'}[c]));
 const sig=row=>[row?.game_number,row?.team_a_points,row?.team_b_points,row?.winner_id,row?.mvp_name,row?.mvp_kills,row?.mvp_deaths,row?.mvp_assists].join('|');
 
 async function latest(matchId,force=false){
@@ -36,10 +36,14 @@ async function decorate(force=false){
   }
 }
 function schedule(force=false){clearTimeout(timer);timer=setTimeout(()=>decorate(force),90)}
+function emitResult(row,eventType){
+  if(typeof window==='undefined'||!row?.match_id||!row?.winner_id)return;
+  window.dispatchEvent(new CustomEvent('mlbb-game-result',{detail:{...row,eventType}}));
+}
 function bind(){
   schedule(true);
   const host=document.querySelector('#live-panel')||document.querySelector('#live');if(host)new MutationObserver(()=>schedule(true)).observe(host,{childList:true,subtree:true});
-  if(isConfigured()&&supabase){channel=supabase.channel('public-mlbb-game-results').on('postgres_changes',{event:'*',schema:'public',table:'match_games'},payload=>{const row=payload.new&&Object.keys(payload.new).length?payload.new:payload.old;if(row?.match_id)cache.delete(row.match_id);schedule(true)}).subscribe()}
+  if(isConfigured()&&supabase){channel=supabase.channel('public-mlbb-game-results').on('postgres_changes',{event:'*',schema:'public',table:'match_games'},payload=>{const row=payload.new&&Object.keys(payload.new).length?payload.new:payload.old;if(row?.match_id)cache.delete(row.match_id);schedule(true);if(payload.eventType!=='DELETE')emitResult(row,payload.eventType)}).subscribe()}
 }
 window.addEventListener('beforeunload',()=>{if(channel&&supabase)supabase.removeChannel(channel)});
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',bind,{once:true});else bind();
