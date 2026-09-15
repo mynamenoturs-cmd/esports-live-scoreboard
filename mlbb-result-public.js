@@ -37,8 +37,8 @@ async function decorate(force=false){
 }
 function schedule(force=false){clearTimeout(timer);timer=setTimeout(()=>decorate(force),90)}
 function bind(){
-  schedule();
-  const host=document.querySelector('#live-panel')||document.querySelector('#live');if(host)new MutationObserver(()=>schedule()).observe(host,{childList:true,subtree:true});
+  schedule(true);
+  const host=document.querySelector('#live-panel')||document.querySelector('#live');if(host)new MutationObserver(()=>schedule(true)).observe(host,{childList:true,subtree:true});
   if(isConfigured()&&supabase){channel=supabase.channel('public-mlbb-game-results').on('postgres_changes',{event:'*',schema:'public',table:'match_games'},payload=>{const row=payload.new&&Object.keys(payload.new).length?payload.new:payload.old;if(row?.match_id)cache.delete(row.match_id);schedule(true)}).subscribe()}
 }
 window.addEventListener('beforeunload',()=>{if(channel&&supabase)supabase.removeChannel(channel)});
