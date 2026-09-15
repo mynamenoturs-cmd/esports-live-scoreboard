@@ -1,5 +1,6 @@
 const tabs=[
   {key:'standings',label:'Kedudukan'},
+  {key:'statistics',label:'Statistik'},
   {key:'schedule',label:'Jadual'},
   {key:'teams',label:'Pasukan'}
 ];
