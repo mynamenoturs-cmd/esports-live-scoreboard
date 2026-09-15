@@ -18,11 +18,15 @@
 #live {
   min-height: 0;
   display: flex;
-  align-items: center;
+  flex-direction: column;
+  justify-content: center;
+  align-items: stretch;
+  gap: 12px;
 }
 
 #live > .live-card,
-#live > .notice {
+#live > .notice,
+#live > .mlbb-live-result {
   width: 100%;
 }
 
