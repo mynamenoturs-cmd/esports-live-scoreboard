@@ -1,12 +1,12 @@
-import './series-style-loader.js?v=series3';
-import './mlbb-result-public.js?v=series3';
+import './series-style-loader.js?v=series4';
+import './mlbb-result-public.js?v=winner2';
 import { loadTournamentBundle, subscribeTournament, applyRealtimeChange, filterBundle, gameFromLocation } from './data.js';
-import { liveMatchHtml, nextMatchHtml, gameTabsHtml } from './ui.js?v=series3';
+import { liveMatchHtml, nextMatchHtml, gameTabsHtml } from './ui.js?v=series4';
 let sub,root,selectedCode,countdownTimer,winnerTimer,winnerActive=false;
 const winnerQueue=[];
 const shownWinners=new Set();
 const selectedStation=()=>{try{return new URLSearchParams(location.search).get('station')||''}catch{return ''}};
-const esc=(s='')=>String(s).replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
+const esc=(s='')=>String(s).replace(/[&<>'\"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','\"':'&quot;'}[c]));
 const initials=(name='TEAM')=>String(name).trim().split(/\s+/).map(x=>x[0]||'').join('').slice(0,3).toUpperCase()||'TM';
 function stationBundle(bundle,station){return station?{...bundle,matches:bundle.matches.filter(m=>String(m.station||'1')===String(station))}:bundle}
 function liveHtml(bundle){
@@ -54,9 +54,15 @@ function ensureWinnerSplash(){
   let el=document.querySelector('#winner-splash');if(el)return el;
   el=document.createElement('div');el.id='winner-splash';el.className='winner-splash';el.setAttribute('aria-live','assertive');el.innerHTML='<span class="winner-spark"></span><span class="winner-spark"></span><span class="winner-spark"></span><span class="winner-spark"></span><div class="winner-stage" id="winner-stage"></div>';document.body.appendChild(el);return el;
 }
-function winnerKey(m){return `${m.id}:${m.finished_at||m.updated_at||'finished'}`}
+function winnerKey(m){return `match:${m.id}:${m.finished_at||m.updated_at||'finished'}`}
+function gameWinnerKey(row){return `game:${row.match_id}:${row.game_number}:${row.winner_id}:${row.created_at||''}`}
 function eligibleWinner(match,bundle){
   if(!match||match.status!=='finished'||!match.winner_id||!bundle?.activeGame)return false;
+  if(match.game_id!==bundle.activeGame.id)return false;
+  const station=selectedStation();return !station||String(match.station||'1')===String(station);
+}
+function eligibleGameWinner(row,match,bundle){
+  if(!row?.winner_id||!match||bundle?.activeGame?.scoring_mode!=='series')return false;
   if(match.game_id!==bundle.activeGame.id)return false;
   const station=selectedStation();return !station||String(match.station||'1')===String(station);
 }
@@ -70,33 +76,56 @@ function winnerMarkup(match,bundle){
   const fifaScore=`${Number(match.team_a_score||0)} – ${Number(match.team_b_score||0)}`;
   const round=match.round_name||match.stage||'Perlawanan';
   return `<div class="winner-event">${esc(root.tournament.name)} · ${esc(bundle.activeGame.name)}</div>
-    <div class="winner-crown">Official Match Result</div>
+    <div class="winner-crown">Official Series Result</div>
     <div class="winner-logo-shell">${winnerLogoHtml(winner)}</div>
-    <div class="winner-label">Match Winner</div>
+    <div class="winner-label">${isSeries?'Series Winner':'Match Winner'}</div>
     <h1 class="winner-name">${esc(winner?.name||'Pemenang')}</h1>
     ${isSeries?seriesDots(winnerWins,target):''}
     <div class="winner-meta">
       <span>${esc(round)}</span>
       <span>Station ${esc(match.station||'1')}</span>
-      ${isSeries?`<span>BO${Number(match.best_of||1)} · Series Won</span>`:`<span>Final ${esc(fifaScore)}</span>`}
+      ${isSeries?`<span>BO${Number(match.best_of||1)} · Series Complete</span>`:`<span>Final ${esc(fifaScore)}</span>`}
       ${loser?`<span>vs ${esc(loser.name)}</span>`:''}
     </div>
     <div class="winner-accent"></div>
-    <div class="winner-subtitle">${isSeries?'Victory confirmed · game-win series complete':'Victory confirmed · final score official'}</div>`;
+    <div class="winner-subtitle">Victory confirmed · official match result</div>`;
+}
+function gameWinnerMarkup(row,match,bundle){
+  const winner=(root.teams||[]).find(t=>t.id===row.winner_id);
+  const a=(root.teams||[]).find(t=>t.id===match.team_a_id),b=(root.teams||[]).find(t=>t.id===match.team_b_id);
+  const round=match.round_name||match.stage||'Perlawanan';
+  const kda=`${Number(row.mvp_kills||0)} / ${Number(row.mvp_deaths||0)} / ${Number(row.mvp_assists||0)}`;
+  return `<div class="winner-event">${esc(root.tournament.name)} · ${esc(bundle.activeGame.name)}</div>
+    <div class="winner-crown">Game ${Number(row.game_number||1)} · Official Result</div>
+    <div class="winner-logo-shell game-logo">${winnerLogoHtml(winner)}</div>
+    <div class="winner-label">Game ${Number(row.game_number||1)} Winner</div>
+    <h1 class="winner-name">${esc(winner?.name||'Pemenang')}</h1>
+    <div class="winner-game-stats">
+      <div><small>Total Kill</small><strong>${Number(row.team_a_points||0)} <em>—</em> ${Number(row.team_b_points||0)}</strong><span>${esc(a?.short_name||a?.name||'A')} vs ${esc(b?.short_name||b?.name||'B')}</span></div>
+      <div class="mvp"><small>Game MVP</small><strong>${esc(row.mvp_name||'—')}</strong><span>KDA ${esc(kda)}</span></div>
+    </div>
+    <div class="winner-meta"><span>${esc(round)}</span><span>Station ${esc(match.station||'1')}</span><span>BO${Number(match.best_of||1)}</span></div>
+    <div class="winner-accent"></div>
+    <div class="winner-subtitle">Game victory confirmed · series continues</div>`;
 }
 function presentNextWinner(){
   if(winnerActive||!winnerQueue.length)return;
   const item=winnerQueue.shift(),el=ensureWinnerSplash(),stage=el.querySelector('#winner-stage');
-  if(!item?.match||!item?.bundle||!stage)return;
-  winnerActive=true;stage.innerHTML=winnerMarkup(item.match,item.bundle);el.classList.remove('closing');requestAnimationFrame(()=>el.classList.add('open'));
+  if(!item||!stage)return;
+  winnerActive=true;el.classList.toggle('game-win',item.type==='game');stage.innerHTML=item.type==='game'?gameWinnerMarkup(item.row,item.match,item.bundle):winnerMarkup(item.match,item.bundle);el.classList.remove('closing');requestAnimationFrame(()=>el.classList.add('open'));
   clearTimeout(winnerTimer);winnerTimer=setTimeout(()=>{
-    el.classList.add('closing');setTimeout(()=>{el.classList.remove('open','closing');winnerActive=false;presentNextWinner()},360);
-  },10000);
+    el.classList.add('closing');setTimeout(()=>{el.classList.remove('open','closing','game-win');winnerActive=false;presentNextWinner()},360);
+  },item.type==='game'?8500:10500);
 }
 function queueWinner(match,bundle,{force=false}={}){
   if(!eligibleWinner(match,bundle))return;
   const key=winnerKey(match);if(!force&&shownWinners.has(key))return;shownWinners.add(key);
-  winnerQueue.push({match:{...match},bundle:{...bundle,activeGame:{...bundle.activeGame}}});presentNextWinner();
+  winnerQueue.push({type:'match',match:{...match},bundle:{...bundle,activeGame:{...bundle.activeGame}}});presentNextWinner();
+}
+function queueGameWinner(row,match,bundle){
+  if(!eligibleGameWinner(row,match,bundle))return;
+  const key=gameWinnerKey(row);if(shownWinners.has(key))return;shownWinners.add(key);
+  winnerQueue.push({type:'game',row:{...row},match:{...match},bundle:{...bundle,activeGame:{...bundle.activeGame}}});presentNextWinner();
 }
 function maybeShowRecentWinner(bundle){
   const now=Date.now();
@@ -127,5 +156,10 @@ async function boot(){
     });
   }catch(e){document.querySelector('#live').innerHTML=`<div class="notice error">${e.message}</div>`}
 }
+window.addEventListener('mlbb-game-result',e=>{
+  const row=e.detail;if(!root||!row||row.eventType==='DELETE')return;
+  const match=(root.matches||[]).find(m=>m.id===row.match_id);if(!match)return;
+  const current=filterBundle(root,selectedCode);queueGameWinner(row,match,current);
+});
 document.addEventListener('click',e=>{const b=e.target.closest('[data-game]');if(b)selectGame(b.dataset.game)});
 boot();
