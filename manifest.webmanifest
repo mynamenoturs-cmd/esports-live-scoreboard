@@ -1,7 +1,7 @@
 {
-  "name": "PesMAC 4.0 Live Scoreboard",
-  "short_name": "PesMAC Live",
-  "description": "Live esports scoreboard, bracket and tournament control for PesMAC 4.0.",
+  "name": "PesMAC 4.0 MLBB Live",
+  "short_name": "PesMAC MLBB",
+  "description": "Live Mobile Legends tournament scoreboard, bracket and control room for PesMAC 4.0.",
   "id": "./",
   "start_url": "./",
   "scope": "./",
@@ -36,7 +36,7 @@
       "url": "./bracket?game=mlbb"
     },
     {
-      "name": "Control Room",
+      "name": "MLBB Control Room",
       "short_name": "Admin",
       "url": "./admin"
     }
