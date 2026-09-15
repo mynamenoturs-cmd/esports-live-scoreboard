@@ -1,6 +1,7 @@
-import './series-style-loader.js?v=series1';
+import './series-style-loader.js?v=series3';
+import './mlbb-result-public.js?v=series3';
 import { loadTournamentBundle, subscribeTournament, applyRealtimeChange, filterBundle, gameFromLocation, gameUrl } from './data.js';
-import { liveMatchHtml, standingsHtml, scheduleHtml, teamsHtml, nextMatchHtml, gameTabsHtml, formatSummaryText } from './ui.js?v=series1';
+import { liveMatchHtml, standingsHtml, scheduleHtml, teamsHtml, nextMatchHtml, gameTabsHtml, formatSummaryText } from './ui.js?v=series3';
 
 let sub,root,selectedCode;
 function view(){ return filterBundle(root,selectedCode); }
