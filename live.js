@@ -2,7 +2,7 @@ import './series-style-loader.js?v=series4';
 import './mlbb-result-public.js?v=winner2';
 import { loadTournamentBundle, subscribeTournament, applyRealtimeChange, filterBundle, gameFromLocation } from './data.js';
 import { liveMatchHtml, nextMatchHtml, gameTabsHtml } from './ui.js?v=series4';
-let sub,root,selectedCode,countdownTimer,winnerTimer,winnerActive=false;
+let sub,root,selectedCode,countdownTimer,winnerActive=false;
 const winnerQueue=[];
 const shownWinners=new Set();
 const selectedStation=()=>{try{return new URLSearchParams(location.search).get('station')||''}catch{return ''}};
@@ -52,7 +52,12 @@ function seriesDots(wins,target){
 }
 function ensureWinnerSplash(){
   let el=document.querySelector('#winner-splash');if(el)return el;
-  el=document.createElement('div');el.id='winner-splash';el.className='winner-splash';el.setAttribute('aria-live','assertive');el.innerHTML='<span class="winner-spark"></span><span class="winner-spark"></span><span class="winner-spark"></span><span class="winner-spark"></span><div class="winner-stage" id="winner-stage"></div>';document.body.appendChild(el);return el;
+  el=document.createElement('div');el.id='winner-splash';el.className='winner-splash';el.setAttribute('aria-live','assertive');el.innerHTML='<button type="button" class="winner-close" data-winner-close aria-label="Tutup paparan pemenang"><span class="winner-close-icon">✕</span><span>TUTUP</span></button><span class="winner-spark"></span><span class="winner-spark"></span><span class="winner-spark"></span><span class="winner-spark"></span><div class="winner-stage" id="winner-stage"></div>';document.body.appendChild(el);return el;
+}
+function closeWinner(){
+  const el=document.querySelector('#winner-splash');if(!el||!winnerActive)return;
+  el.classList.add('closing');
+  setTimeout(()=>{el.classList.remove('open','closing','game-win');winnerActive=false;presentNextWinner()},360);
 }
 function winnerKey(m){return `match:${m.id}:${m.finished_at||m.updated_at||'finished'}`}
 function gameWinnerKey(row){return `game:${row.match_id}:${row.game_number}:${row.winner_id}:${row.created_at||''}`}
@@ -73,18 +78,17 @@ function winnerMarkup(match,bundle){
   const isSeries=bundle.activeGame?.scoring_mode==='series';
   const winnerWins=match.winner_id===match.team_a_id?Number(match.team_a_score||0):Number(match.team_b_score||0);
   const target=Math.floor(Number(match.best_of||bundle.activeGame?.default_best_of||1)/2)+1;
-  const fifaScore=`${Number(match.team_a_score||0)} – ${Number(match.team_b_score||0)}`;
   const round=match.round_name||match.stage||'Perlawanan';
   return `<div class="winner-event">${esc(root.tournament.name)} · ${esc(bundle.activeGame.name)}</div>
     <div class="winner-crown">Official Series Result</div>
     <div class="winner-logo-shell">${winnerLogoHtml(winner)}</div>
-    <div class="winner-label">${isSeries?'Series Winner':'Match Winner'}</div>
+    <div class="winner-label">Series Winner</div>
     <h1 class="winner-name">${esc(winner?.name||'Pemenang')}</h1>
-    ${isSeries?seriesDots(winnerWins,target):''}
+    ${seriesDots(winnerWins,target)}
     <div class="winner-meta">
       <span>${esc(round)}</span>
       <span>Station ${esc(match.station||'1')}</span>
-      ${isSeries?`<span>BO${Number(match.best_of||1)} · Series Complete</span>`:`<span>Final ${esc(fifaScore)}</span>`}
+      <span>BO${Number(match.best_of||1)} · Series Complete</span>
       ${loser?`<span>vs ${esc(loser.name)}</span>`:''}
     </div>
     <div class="winner-accent"></div>
@@ -106,16 +110,13 @@ function gameWinnerMarkup(row,match,bundle){
     </div>
     <div class="winner-meta"><span>${esc(round)}</span><span>Station ${esc(match.station||'1')}</span><span>BO${Number(match.best_of||1)}</span></div>
     <div class="winner-accent"></div>
-    <div class="winner-subtitle">Game victory confirmed · series continues</div>`;
+    <div class="winner-subtitle">Game victory confirmed · tekan TUTUP untuk kembali ke live</div>`;
 }
 function presentNextWinner(){
   if(winnerActive||!winnerQueue.length)return;
   const item=winnerQueue.shift(),el=ensureWinnerSplash(),stage=el.querySelector('#winner-stage');
   if(!item||!stage)return;
   winnerActive=true;el.classList.toggle('game-win',item.type==='game');stage.innerHTML=item.type==='game'?gameWinnerMarkup(item.row,item.match,item.bundle):winnerMarkup(item.match,item.bundle);el.classList.remove('closing');requestAnimationFrame(()=>el.classList.add('open'));
-  clearTimeout(winnerTimer);winnerTimer=setTimeout(()=>{
-    el.classList.add('closing');setTimeout(()=>{el.classList.remove('open','closing','game-win');winnerActive=false;presentNextWinner()},360);
-  },item.type==='game'?8500:10500);
 }
 function queueWinner(match,bundle,{force=false}={}){
   if(!eligibleWinner(match,bundle))return;
@@ -161,5 +162,8 @@ window.addEventListener('mlbb-game-result',e=>{
   const match=(root.matches||[]).find(m=>m.id===row.match_id);if(!match)return;
   const current=filterBundle(root,selectedCode);queueGameWinner(row,match,current);
 });
-document.addEventListener('click',e=>{const b=e.target.closest('[data-game]');if(b)selectGame(b.dataset.game)});
+document.addEventListener('click',e=>{
+  if(e.target.closest('[data-winner-close]')){closeWinner();return}
+  const b=e.target.closest('[data-game]');if(b)selectGame(b.dataset.game)
+});
 boot();
