@@ -2,11 +2,12 @@ import { supabase, isConfigured } from './supabase-client.js';
 import { CONFIG } from './config.js';
 import { demoTournament, demoGames, demoTeams, demoMatches } from './demo-data.js';
 
+const MLBB_CODE = 'mlbb';
 const TOURNAMENT_COLUMNS = 'id,slug,name,venue,starts_at,ends_at,status,updated_at';
 const GAME_COLUMNS = 'id,tournament_id,code,name,team_size,scoring_mode,default_best_of,allow_draws,sort_order,is_active';
 const TEAM_COLUMNS = 'id,tournament_id,game_id,name,short_name,logo_url,seed_order';
 const MATCH_COLUMNS = 'id,tournament_id,game_id,stage,round_name,group_name,bracket_round,bracket_position,next_match_id,next_match_slot,auto_generated,team_a_id,team_b_id,team_a_score,team_b_score,team_a_tiebreak,team_b_tiebreak,best_of,scheduled_at,station,status,winner_id,started_at,finished_at,updated_at';
-const CACHE_KEY = `scoreboard-static:${CONFIG.DEFAULT_TOURNAMENT_SLUG}:v3`;
+const CACHE_KEY = `scoreboard-static:${CONFIG.DEFAULT_TOURNAMENT_SLUG}:mlbb-v1`;
 const STATIC_CACHE_MS = 10 * 60 * 1000;
 
 export const teamMap = (teams=[]) => Object.fromEntries(teams.map(t => [t.id, t]));
@@ -15,6 +16,17 @@ export const fmtTime = (iso) => iso ? new Intl.DateTimeFormat('ms-MY',{hour:'2-d
 export const fmtDate = (iso) => iso ? new Intl.DateTimeFormat('ms-MY',{day:'2-digit',month:'short',year:'numeric'}).format(new Date(iso)) : '—';
 export const initials = (name='?') => name.split(/\s+/).map(x=>x[0]).join('').slice(0,3).toUpperCase();
 export const maxWins = (bestOf=1) => Math.floor(Number(bestOf)/2)+1;
+
+function mlbbOnly(bundle={}){
+  const games=(bundle.games||[]).filter(g=>String(g.code||'').toLowerCase()===MLBB_CODE);
+  const ids=new Set(games.map(g=>g.id));
+  return {
+    ...bundle,
+    games,
+    teams:(bundle.teams||[]).filter(t=>ids.has(t.game_id)),
+    matches:(bundle.matches||[]).filter(m=>ids.has(m.game_id))
+  };
+}
 
 function getStaticCache(){
   try{
@@ -57,32 +69,30 @@ function groupStandingsFor(teams,matches){
 }
 
 export function resolveGame(bundle, ref){
-  const active=(bundle.games||[]).filter(g=>g.is_active!==false).sort((a,b)=>(a.sort_order||99)-(b.sort_order||99));
+  const active=(bundle.games||[]).filter(g=>g.is_active!==false&&String(g.code||'').toLowerCase()===MLBB_CODE).sort((a,b)=>(a.sort_order||99)-(b.sort_order||99));
   if(!active.length) return null;
   if(ref){
     const exact=active.find(g=>g.id===ref||g.code===String(ref).toLowerCase());
     if(exact) return exact;
   }
-  const live=bundle.matches?.find(m=>m.status==='live');
-  if(live){ const g=active.find(x=>x.id===live.game_id); if(g) return g; }
   return active[0];
 }
 
 export function filterBundle(bundle, gameRef){
-  const activeGame=resolveGame(bundle,gameRef);
-  if(!activeGame) return {...bundle,activeGame:null,teams:[],matches:[],standings:[],groupStandings:{}};
-  const teams=(bundle.teams||[]).filter(t=>t.game_id===activeGame.id);
-  const matches=(bundle.matches||[]).filter(m=>m.game_id===activeGame.id);
-  return {...bundle,activeGame,teams,matches,standings:calculateStandings(teams,matches),groupStandings:groupStandingsFor(teams,matches)};
+  const clean=mlbbOnly(bundle);
+  const activeGame=resolveGame(clean,gameRef);
+  if(!activeGame) return {...clean,activeGame:null,teams:[],matches:[],standings:[],groupStandings:{}};
+  const teams=(clean.teams||[]).filter(t=>t.game_id===activeGame.id);
+  const matches=(clean.matches||[]).filter(m=>m.game_id===activeGame.id);
+  return {...clean,activeGame,teams,matches,standings:calculateStandings(teams,matches),groupStandings:groupStandingsFor(teams,matches)};
 }
 
 export function gameFromLocation(bundle){
-  try{return resolveGame(bundle,new URLSearchParams(location.search).get('game'))}catch{return resolveGame(bundle)}
+  return resolveGame(bundle,MLBB_CODE);
 }
 
-export function gameUrl(path,game){
-  const code=typeof game==='string'?game:game?.code;
-  return code?`${path}?game=${encodeURIComponent(code)}`:path;
+export function gameUrl(path){
+  return `${path}?game=${MLBB_CODE}`;
 }
 
 async function loadEdgeSnapshot(){
@@ -92,15 +102,15 @@ async function loadEdgeSnapshot(){
     const url=new URL(CONFIG.PUBLIC_SNAPSHOT_URL,location.origin); url.searchParams.set('slug',CONFIG.DEFAULT_TOURNAMENT_SLUG);
     const res=await fetch(url,{signal:controller.signal,headers:{accept:'application/json'}});
     if(!res.ok) return null;
-    const body=await res.json();
-    if(!body?.tournament||!Array.isArray(body.games)||!Array.isArray(body.teams)||!Array.isArray(body.matches)) return null;
+    const body=mlbbOnly(await res.json());
+    if(!body?.tournament||body.games.length!==1||!Array.isArray(body.teams)||!Array.isArray(body.matches)) return null;
     setStaticCache(body.tournament,body.games,body.teams);
     return {tournament:body.tournament,games:body.games,teams:body.teams,matches:body.matches,demo:false,edge:true};
   }catch{return null}finally{clearTimeout(timer)}
 }
 
 export async function loadTournamentBundle({forceStatic=false,preferEdge=true}={}) {
-  if (!isConfigured()) return { tournament:demoTournament, games:demoGames, teams:demoTeams, matches:demoMatches, demo:true };
+  if (!isConfigured()) return mlbbOnly({ tournament:demoTournament, games:demoGames, teams:demoTeams, matches:demoMatches, demo:true });
   if(preferEdge && !forceStatic){ const edge=await loadEdgeSnapshot(); if(edge) return edge; }
 
   const cached=!forceStatic?getStaticCache():null;
@@ -111,25 +121,29 @@ export async function loadTournamentBundle({forceStatic=false,preferEdge=true}={
     if(error) throw error; tournament=data;
     if(!tournament) throw new Error(`Tournament slug "${CONFIG.DEFAULT_TOURNAMENT_SLUG}" tidak ditemui.`);
   }
-  if(!games||!teams){
-    const [gRes,tRes]=await Promise.all([
-      supabase.from('games').select(GAME_COLUMNS).eq('tournament_id',tournament.id).order('sort_order',{ascending:true}),
-      supabase.from('teams').select(TEAM_COLUMNS).eq('tournament_id',tournament.id).order('seed_order',{ascending:true})
-    ]);
-    if(gRes.error) throw gRes.error; if(tRes.error) throw tRes.error;
-    games=gRes.data||[]; teams=tRes.data||[]; setStaticCache(tournament,games,teams);
+  if(!games){
+    const {data,error}=await supabase.from('games').select(GAME_COLUMNS).eq('tournament_id',tournament.id).eq('code',MLBB_CODE).limit(1);
+    if(error) throw error; games=data||[];
+  }
+  if(!games.length) throw new Error('Kategori MLBB tidak ditemui untuk tournament ini.');
+  const mlbbId=games[0].id;
+  if(!teams){
+    const {data,error}=await supabase.from('teams').select(TEAM_COLUMNS).eq('tournament_id',tournament.id).eq('game_id',mlbbId).order('seed_order',{ascending:true});
+    if(error) throw error; teams=data||[]; setStaticCache(tournament,games,teams);
   }
 
-  const {data:matches,error:mErr}=await supabase.from('matches').select(MATCH_COLUMNS).eq('tournament_id',tournament.id).order('scheduled_at',{ascending:true});
+  const {data:matches,error:mErr}=await supabase.from('matches').select(MATCH_COLUMNS).eq('tournament_id',tournament.id).eq('game_id',mlbbId).order('scheduled_at',{ascending:true});
   if(mErr) throw mErr;
   return { tournament,games,teams,matches:matches||[],demo:false };
 }
 
 export function applyRealtimeChange(bundle,payload){
   if(!bundle||!payload) return bundle;
+  const row=payload.new && Object.keys(payload.new).length ? payload.new : payload.old;
+  const allowed=new Set((bundle.games||[]).map(g=>g.id));
+  if(row?.game_id&&!allowed.has(row.game_id)) return bundle;
   const table=payload.table;
   if(table==='matches'){
-    const row=payload.new && Object.keys(payload.new).length ? payload.new : payload.old;
     if(payload.eventType==='DELETE') bundle.matches=bundle.matches.filter(x=>x.id!==row.id);
     else {
       const i=bundle.matches.findIndex(x=>x.id===row.id);
@@ -137,7 +151,6 @@ export function applyRealtimeChange(bundle,payload){
       bundle.matches.sort((a,b)=>new Date(a.scheduled_at||0)-new Date(b.scheduled_at||0));
     }
   } else if(table==='teams'){
-    const row=payload.new && Object.keys(payload.new).length ? payload.new : payload.old;
     if(payload.eventType==='DELETE') bundle.teams=bundle.teams.filter(x=>x.id!==row.id);
     else { const i=bundle.teams.findIndex(x=>x.id===row.id); if(i>=0) bundle.teams[i]={...bundle.teams[i],...row}; else bundle.teams.push(row); }
     bundle.teams.sort((a,b)=>(a.seed_order||999)-(b.seed_order||999));
@@ -148,7 +161,7 @@ export function applyRealtimeChange(bundle,payload){
 
 export function subscribeTournament(tournamentId, onChange) {
   if (!isConfigured()) return { unsubscribe(){} };
-  const channel = supabase.channel(`scoreboard:${tournamentId}`)
+  const channel = supabase.channel(`scoreboard:${tournamentId}:mlbb`)
     .on('postgres_changes',{event:'*',schema:'public',table:'matches',filter:`tournament_id=eq.${tournamentId}`},onChange)
     .on('postgres_changes',{event:'*',schema:'public',table:'teams',filter:`tournament_id=eq.${tournamentId}`},onChange)
     .subscribe();
