@@ -18,7 +18,7 @@ function apply(){
   const filter=$('#admin-game-filter');
   if(filter){
     const mlbb=[...filter.options].find(o=>String(o.value).toLowerCase()==='mlbb');
-    if(mlbb){filter.value='mlbb';filter.dispatchEvent(new Event('change',{bubbles:true}))}
+    if(mlbb&&filter.value!==mlbb.value){filter.value=mlbb.value;filter.dispatchEvent(new Event('change',{bubbles:true}))}
     const panel=filter.closest('.panel');if(panel)panel.style.display='none';
   }
 
