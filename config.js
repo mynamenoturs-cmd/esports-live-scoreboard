@@ -19,6 +19,6 @@ export const isConfigured = () =>
 
 if (typeof window !== 'undefined' && /^\/admin\/?$/.test(window.location.pathname)) {
   import('./series-style-loader.js?v=series1').catch(() => {});
-  import('./mlbb-series-admin.js?v=series1').catch((err) => console.error('MLBB series panel:', err));
+  import('./mlbb-series-control.js?v=series1').catch((err) => console.error('MLBB series panel:', err));
   import('./marshal-admin.js?v=ca346aba').catch((err) => console.error('Marshal panel:', err));
 }
