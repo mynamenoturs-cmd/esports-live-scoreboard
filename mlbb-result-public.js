@@ -3,6 +3,7 @@ import { supabase, isConfigured } from './supabase-client.js';
 const cache=new Map();
 let timer=null,channel=null;
 const esc=(s='')=>String(s).replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
+const sig=row=>[row?.game_number,row?.team_a_points,row?.team_b_points,row?.winner_id,row?.mvp_name,row?.mvp_kills,row?.mvp_deaths,row?.mvp_assists].join('|');
 
 async function latest(matchId,force=false){
   if(!isConfigured()||!supabase||!matchId)return null;
@@ -17,8 +18,8 @@ function winnerInfo(card,row){
   return {name:el?.querySelector('.team-name')?.textContent?.trim()||'Pemenang',logo:el?.querySelector('.team-logo')?.outerHTML||''};
 }
 function resultHtml(card,row){
-  const w=winnerInfo(card,row),kda=`${row.mvp_kills??'—'} / ${row.mvp_deaths??'—'} / ${row.mvp_assists??'—'}`;
-  return `<section class="mlbb-live-result" data-result-for="${esc(row.match_id)}">
+  const w=winnerInfo(card,row),kda=`${row.mvp_kills??'—'} / ${row.mvp_deaths??'—'} / ${row.mvp_assists??'—'}`,signature=esc(sig(row));
+  return `<section class="mlbb-live-result" data-result-for="${esc(row.match_id)}" data-result-signature="${signature}">
     <div class="mlbb-live-result-head"><span>GAME ${row.game_number} RESULT</span><span class="chip finished">✓ OFFICIAL</span></div>
     <div class="mlbb-live-result-main"><div class="mlbb-result-winner">${w.logo}<div><small>GAME WINNER</small><strong>${esc(w.name)}</strong></div></div><div class="mlbb-result-kills"><small>TOTAL KILL</small><strong>${Number(row.team_a_points||0)} <span>—</span> ${Number(row.team_b_points||0)}</strong></div><div class="mlbb-result-mvp"><small>MVP</small><strong>${esc(row.mvp_name||'—')}</strong><span>KDA ${esc(kda)}</span></div></div>
   </section>`;
@@ -29,6 +30,7 @@ async function decorate(force=false){
     const id=card.dataset.liveMatchId;if(!id)continue;
     const row=await latest(id,force);const old=document.querySelector(`[data-result-for="${CSS.escape(id)}"]`);
     if(!row){old?.remove();continue}
+    if(old?.dataset.resultSignature===sig(row))continue;
     const wrap=document.createElement('div');wrap.innerHTML=resultHtml(card,row);const next=wrap.firstElementChild;
     if(old)old.replaceWith(next);else card.insertAdjacentElement('afterend',next);
   }
