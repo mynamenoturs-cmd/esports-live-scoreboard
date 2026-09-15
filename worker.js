@@ -36,7 +36,7 @@ async function snapshot(request, env) {
   }
 
   const cache = caches.default;
-  const cacheKey = new Request(`${reqUrl.origin}/api/snapshot?slug=${encodeURIComponent(slug)}`, { method: 'GET' });
+  const cacheKey = new Request(`${reqUrl.origin}/api/snapshot?slug=${encodeURIComponent(slug)}&mode=mlbb`, { method: 'GET' });
   const hit = await cache.match(cacheKey);
   if (hit) return hit;
 
@@ -56,14 +56,22 @@ async function snapshot(request, env) {
     }
 
     const tid = encodeURIComponent(tournament.id);
-    const [games, teams, matches] = await Promise.all([
-      getJson(`${base}/games?tournament_id=eq.${tid}&select=${encodeURIComponent(gameCols)}&order=sort_order.asc`, env),
-      getJson(`${base}/teams?tournament_id=eq.${tid}&select=${encodeURIComponent(teamCols)}&order=seed_order.asc`, env),
-      getJson(`${base}/matches?tournament_id=eq.${tid}&select=${encodeURIComponent(matchCols)}&order=scheduled_at.asc.nullslast`, env)
+    const games = await getJson(
+      `${base}/games?tournament_id=eq.${tid}&code=eq.mlbb&select=${encodeURIComponent(gameCols)}&limit=1`, env
+    );
+    const mlbb = games?.[0];
+    if (!mlbb) {
+      return new Response(JSON.stringify({ error: 'MLBB category not found' }), { status: 404, headers: jsonHeaders });
+    }
+
+    const gid = encodeURIComponent(mlbb.id);
+    const [teams, matches] = await Promise.all([
+      getJson(`${base}/teams?tournament_id=eq.${tid}&game_id=eq.${gid}&select=${encodeURIComponent(teamCols)}&order=seed_order.asc`, env),
+      getJson(`${base}/matches?tournament_id=eq.${tid}&game_id=eq.${gid}&select=${encodeURIComponent(matchCols)}&order=scheduled_at.asc.nullslast`, env)
     ]);
 
     const response = new Response(
-      JSON.stringify({ tournament, games, teams, matches, edge_cached_at: new Date().toISOString() }),
+      JSON.stringify({ tournament, games:[mlbb], teams, matches, edge_cached_at: new Date().toISOString() }),
       { headers: jsonHeaders }
     );
     await cache.put(cacheKey,response.clone());
