@@ -21,17 +21,28 @@
 .mlbb-series-vs{font-weight:1000;color:var(--muted)}
 .mlbb-game-entry{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding-top:13px;border-top:1px solid rgba(255,255,255,.08)}
 .mlbb-game-entry .span-2{grid-column:span 2}
+.mlbb-kda-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}
 .mlbb-winner-actions{display:grid;grid-template-columns:1fr 1fr;gap:9px}
 .mlbb-game-history{display:grid;gap:7px;margin-top:12px}
 .mlbb-game-row{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:10px;padding:9px 10px;border:1px solid rgba(255,255,255,.07);border-radius:10px;background:rgba(255,255,255,.025)}
 .mlbb-game-row .winner{font-weight:900}.mlbb-game-row .kills{font-size:.8rem;color:var(--muted)}
+.mlbb-history-mvp{display:block;margin-top:3px;color:#e4d9ff;font-size:.76rem;font-weight:800}
 .mlbb-series-ready{margin-top:10px;text-align:center;color:#caffdf;font-size:.78rem;font-weight:900;letter-spacing:.08em;text-transform:uppercase}
 .overlay-series-label{display:grid;place-items:center;gap:3px;min-width:74px;color:#fff;font-weight:1000}.overlay-series-label small{font-size:.62rem;color:#9eb1cc;letter-spacing:.09em}
 .overlay-team-series{display:grid;gap:5px}.overlay-team-wrap.right+.overlay-team-series{justify-items:end}
+
+.mlbb-live-result{margin-top:12px;border:1px solid rgba(137,92,255,.38);border-radius:16px;overflow:hidden;background:linear-gradient(135deg,rgba(8,17,40,.96),rgba(34,8,51,.93));box-shadow:0 0 26px rgba(137,92,255,.1)}
+.mlbb-live-result-head{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 12px;border-bottom:1px solid rgba(255,255,255,.08);font-size:.72rem;font-weight:1000;letter-spacing:.12em;color:#d8ceff}
+.mlbb-live-result-main{display:grid;grid-template-columns:minmax(0,1.3fr) auto minmax(0,1fr);align-items:center;gap:14px;padding:13px 14px}
+.mlbb-result-winner{display:flex;align-items:center;gap:10px;min-width:0}.mlbb-result-winner .team-logo{width:52px;height:52px;flex-basis:52px;border-radius:13px;font-size:.85rem;box-shadow:0 0 18px rgba(64,230,255,.14)}
+.mlbb-result-winner div,.mlbb-result-mvp{display:grid;gap:2px;min-width:0}.mlbb-live-result small{font-size:.62rem;color:var(--muted);font-weight:900;letter-spacing:.1em}.mlbb-result-winner strong,.mlbb-result-mvp strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-transform:uppercase}
+.mlbb-result-kills{text-align:center;display:grid;gap:2px}.mlbb-result-kills strong{font-size:1.35rem;letter-spacing:.05em}.mlbb-result-kills strong span{color:var(--muted);padding:0 5px}
+.mlbb-result-mvp{text-align:right}.mlbb-result-mvp strong{color:#ffe8a5}.mlbb-result-mvp span{font-size:.78rem;color:#d9c9ff;font-weight:900}
 
 @media(max-width:720px){
  .series-pip{width:12px;height:12px;border-radius:3px}.series-pips{gap:6px}
  .series-core-label{min-width:110px;padding:10px}.series-core-label strong{font-size:1.7rem}
  .mlbb-series-scoreboard{grid-template-columns:1fr auto 1fr;gap:7px}.mlbb-series-team{padding:10px 7px}
- .mlbb-game-entry{grid-template-columns:1fr}.mlbb-game-entry .span-2{grid-column:auto}.mlbb-winner-actions{grid-template-columns:1fr}
+ .mlbb-game-entry{grid-template-columns:1fr}.mlbb-game-entry .span-2{grid-column:auto}.mlbb-kda-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.mlbb-winner-actions{grid-template-columns:1fr}
+ .mlbb-live-result-main{grid-template-columns:1fr 1fr;gap:10px}.mlbb-result-winner{grid-column:1/-1}.mlbb-result-kills{text-align:left}.mlbb-result-mvp{text-align:right}.mlbb-result-winner .team-logo{width:44px;height:44px;flex-basis:44px}
 }
