@@ -18,6 +18,10 @@ function paintHeader(b){
   const liveChip=document.querySelector('#header-live-chip');
   if(liveChip)liveChip.classList.toggle('is-live',liveStations.length>0);
 }
+function publishDashboardData(b){
+  window.__PESMAC_DASHBOARD__=b;
+  window.dispatchEvent(new CustomEvent('pesmac-dashboard-data',{detail:b}));
+}
 function paint(){
   const b=view(); if(!b.activeGame) return;
   selectedCode=b.activeGame.code;
@@ -35,6 +39,7 @@ function paint(){
   setRouteLinks('bracket',gameUrl('./bracket',b.activeGame));
   setRouteLinks('overlay',gameUrl('./overlay',b.activeGame));
   paintHeader(b);
+  publishDashboardData(b);
   document.querySelector('#app').classList.remove('hidden');
 }
 function selectGame(code){selectedCode=code;const u=new URL(location.href);u.searchParams.set('game',code);history.replaceState({},'',u);paint()}
