@@ -1,11 +1,10 @@
 import './series-style-loader.js?v=series4';
-import './mlbb-result-public.js?v=summary1';
+import './mlbb-result-public.js?v=winner2';
 import { loadTournamentBundle, subscribeTournament, applyRealtimeChange, filterBundle, gameFromLocation } from './data.js';
 import { liveMatchHtml, nextMatchHtml, gameTabsHtml } from './ui.js?v=series4';
 let sub,root,selectedCode,countdownTimer,winnerActive=false;
 const winnerQueue=[];
 const shownWinners=new Set();
-const seriesSummaryByMatch=new Map();
 const selectedStation=()=>{try{return new URLSearchParams(location.search).get('station')||''}catch{return ''}};
 const esc=(s='')=>String(s).replace(/[&<>'\"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','\"':'&quot;'}[c]));
 const initials=(name='TEAM')=>String(name).trim().split(/\s+/).map(x=>x[0]||'').join('').slice(0,3).toUpperCase()||'TM';
@@ -72,21 +71,10 @@ function eligibleGameWinner(row,match,bundle){
   if(match.game_id!==bundle.activeGame.id)return false;
   const station=selectedStation();return !station||String(match.station||'1')===String(station);
 }
-function seriesStatMarkup(summary,a,b){
-  if(!summary)return '';
-  const kda=`${Number(summary.mvp_kills||0)} / ${Number(summary.mvp_deaths||0)} / ${Number(summary.mvp_assists||0)}`;
-  return `<div class="winner-series-stats">
-    <div><small>Series Score</small><strong>${Number(summary.series_win_a||0)} <em>—</em> ${Number(summary.series_win_b||0)}</strong><span>${esc(a?.short_name||a?.name||'A')} vs ${esc(b?.short_name||b?.name||'B')}</span></div>
-    <div><small>Total Kill</small><strong>${Number(summary.series_kill_a||0)} <em>—</em> ${Number(summary.series_kill_b||0)}</strong><span>Kill terkumpul siri</span></div>
-    <div class="mvp"><small>Latest MVP</small><strong>${esc(summary.mvp_name||'—')}</strong><span>KDA ${esc(kda)}</span></div>
-  </div>`;
-}
 function winnerMarkup(match,bundle){
   const winner=(root.teams||[]).find(t=>t.id===match.winner_id);
   const loserId=match.winner_id===match.team_a_id?match.team_b_id:match.team_a_id;
   const loser=(root.teams||[]).find(t=>t.id===loserId);
-  const a=(root.teams||[]).find(t=>t.id===match.team_a_id),b=(root.teams||[]).find(t=>t.id===match.team_b_id);
-  const summary=seriesSummaryByMatch.get(match.id)||null;
   const winnerWins=match.winner_id===match.team_a_id?Number(match.team_a_score||0):Number(match.team_b_score||0);
   const target=Math.floor(Number(match.best_of||bundle.activeGame?.default_best_of||1)/2)+1;
   const round=match.round_name||match.stage||'Perlawanan';
@@ -96,7 +84,6 @@ function winnerMarkup(match,bundle){
     <div class="winner-label">Series Winner</div>
     <h1 class="winner-name">${esc(winner?.name||'Pemenang')}</h1>
     ${seriesDots(winnerWins,target)}
-    ${seriesStatMarkup(summary,a,b)}
     <div class="winner-meta">
       <span>${esc(round)}</span>
       <span>Station ${esc(match.station||'1')}</span>
@@ -104,19 +91,22 @@ function winnerMarkup(match,bundle){
       ${loser?`<span>vs ${esc(loser.name)}</span>`:''}
     </div>
     <div class="winner-accent"></div>
-    <div class="winner-subtitle">Victory confirmed · tekan TUTUP untuk kembali ke live</div>`;
+    <div class="winner-subtitle">Victory confirmed · official match result</div>`;
 }
 function gameWinnerMarkup(row,match,bundle){
   const winner=(root.teams||[]).find(t=>t.id===row.winner_id);
   const a=(root.teams||[]).find(t=>t.id===match.team_a_id),b=(root.teams||[]).find(t=>t.id===match.team_b_id);
   const round=match.round_name||match.stage||'Perlawanan';
-  const summary={...row};
+  const kda=`${Number(row.mvp_kills||0)} / ${Number(row.mvp_deaths||0)} / ${Number(row.mvp_assists||0)}`;
   return `<div class="winner-event">${esc(root.tournament.name)} · ${esc(bundle.activeGame.name)}</div>
     <div class="winner-crown">Game ${Number(row.game_number||1)} · Official Result</div>
     <div class="winner-logo-shell game-logo">${winnerLogoHtml(winner)}</div>
     <div class="winner-label">Game ${Number(row.game_number||1)} Winner</div>
     <h1 class="winner-name">${esc(winner?.name||'Pemenang')}</h1>
-    ${seriesStatMarkup(summary,a,b)}
+    <div class="winner-game-stats">
+      <div><small>Total Kill</small><strong>${Number(row.team_a_points||0)} <em>—</em> ${Number(row.team_b_points||0)}</strong><span>${esc(a?.short_name||a?.name||'A')} vs ${esc(b?.short_name||b?.name||'B')}</span></div>
+      <div class="mvp"><small>Game MVP</small><strong>${esc(row.mvp_name||'—')}</strong><span>KDA ${esc(kda)}</span></div>
+    </div>
     <div class="winner-meta"><span>${esc(round)}</span><span>Station ${esc(match.station||'1')}</span><span>BO${Number(match.best_of||1)}</span></div>
     <div class="winner-accent"></div>
     <div class="winner-subtitle">Game victory confirmed · tekan TUTUP untuk kembali ke live</div>`;
@@ -135,7 +125,6 @@ function queueWinner(match,bundle,{force=false}={}){
 function queueGameWinner(row,match,bundle){
   if(!eligibleGameWinner(row,match,bundle))return;
   const key=gameWinnerKey(row);if(shownWinners.has(key))return;shownWinners.add(key);
-  seriesSummaryByMatch.set(match.id,{...row});
   winnerQueue.push({type:'game',row:{...row},match:{...match},bundle:{...bundle,activeGame:{...bundle.activeGame}}});presentNextWinner();
 }
 function maybeShowRecentWinner(bundle){
@@ -170,7 +159,6 @@ async function boot(){
 window.addEventListener('mlbb-game-result',e=>{
   const row=e.detail;if(!root||!row||row.eventType==='DELETE')return;
   const match=(root.matches||[]).find(m=>m.id===row.match_id);if(!match)return;
-  seriesSummaryByMatch.set(match.id,{...row});
   const current=filterBundle(root,selectedCode);queueGameWinner(row,match,current);
 });
 document.addEventListener('click',e=>{
