@@ -1,0 +1,34 @@
+/* Full-screen match winner celebration for Live Screen */
+.winner-splash{position:fixed;inset:0;z-index:250;display:grid;place-items:center;padding:clamp(18px,4vw,54px);background:radial-gradient(circle at 50% 42%,rgba(75,42,180,.28),transparent 31%),linear-gradient(145deg,rgba(2,6,18,.985),rgba(7,8,24,.985) 48%,rgba(18,5,28,.985));opacity:0;visibility:hidden;pointer-events:none;transition:opacity .32s ease,visibility .32s ease;overflow:hidden}
+.winner-splash.open{opacity:1;visibility:visible}
+.winner-splash::before{content:"";position:absolute;inset:-30%;background:conic-gradient(from 0deg,transparent 0 11%,rgba(64,230,255,.06) 12% 13%,transparent 14% 36%,rgba(255,69,230,.055) 37% 38%,transparent 39% 63%,rgba(137,92,255,.05) 64% 65%,transparent 66%);animation:winnerSweep 11s linear infinite}
+.winner-splash::after{content:"";position:absolute;inset:0;background:linear-gradient(rgba(255,255,255,.018) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.018) 1px,transparent 1px);background-size:34px 34px;mask-image:radial-gradient(circle at center,#000 0 38%,transparent 78%);opacity:.55}
+@keyframes winnerSweep{to{transform:rotate(360deg)}}
+.winner-spark{position:absolute;width:7px;height:7px;border-radius:2px;transform:rotate(45deg);background:#fff;opacity:.65;box-shadow:0 0 18px #40e6ff;animation:winnerSpark 2.6s ease-in-out infinite}
+.winner-spark:nth-child(1){left:12%;top:20%;animation-delay:.1s}.winner-spark:nth-child(2){right:14%;top:24%;animation-delay:.8s;box-shadow:0 0 18px #ff45e6}.winner-spark:nth-child(3){left:18%;bottom:19%;animation-delay:1.35s}.winner-spark:nth-child(4){right:19%;bottom:17%;animation-delay:1.9s;box-shadow:0 0 18px #895cff}
+@keyframes winnerSpark{0%,100%{opacity:.18;transform:rotate(45deg) scale(.55)}50%{opacity:.95;transform:rotate(45deg) scale(1.4)}}
+.winner-stage{position:relative;z-index:2;width:min(980px,96vw);text-align:center;display:grid;justify-items:center;gap:12px}
+.winner-event{display:inline-flex;align-items:center;gap:10px;color:#a9bad3;font-size:clamp(.62rem,1.2vw,.82rem);font-weight:900;letter-spacing:.18em;text-transform:uppercase}
+.winner-event::before,.winner-event::after{content:"";width:42px;height:1px;background:linear-gradient(90deg,transparent,rgba(64,230,255,.7))}.winner-event::after{background:linear-gradient(90deg,rgba(255,69,230,.7),transparent)}
+.winner-crown{font-size:clamp(.68rem,1.5vw,.95rem);font-weight:1000;letter-spacing:.28em;text-transform:uppercase;color:#f5e8b0;text-shadow:0 0 24px rgba(255,212,92,.22)}
+.winner-logo-shell{position:relative;width:clamp(150px,23vw,260px);height:clamp(150px,23vw,260px);display:grid;place-items:center;margin:3px 0 5px;border-radius:34%;background:radial-gradient(circle,rgba(255,255,255,.08),rgba(64,230,255,.025) 48%,transparent 70%);filter:drop-shadow(0 22px 42px rgba(0,0,0,.4));animation:winnerLogoIn .72s cubic-bezier(.18,.9,.32,1.2) both}
+.winner-logo-shell::before{content:"";position:absolute;inset:-15%;border:1px solid rgba(64,230,255,.22);border-radius:50%;box-shadow:0 0 45px rgba(64,230,255,.08),inset 0 0 40px rgba(137,92,255,.055);animation:winnerRing 3.2s ease-in-out infinite}
+.winner-logo-shell::after{content:"";position:absolute;inset:-5%;border:1px solid rgba(255,69,230,.16);border-radius:44%;transform:rotate(45deg);animation:winnerDiamond 5s linear infinite}
+@keyframes winnerLogoIn{from{opacity:0;transform:scale(.58) translateY(24px)}to{opacity:1;transform:scale(1) translateY(0)}}
+@keyframes winnerRing{50%{transform:scale(1.055);opacity:.55}}
+@keyframes winnerDiamond{to{transform:rotate(405deg)}}
+.winner-team-logo{position:relative;z-index:2;width:78%;height:78%;display:grid;place-items:center;border-radius:24%;overflow:hidden;background:linear-gradient(145deg,rgba(8,19,42,.82),rgba(26,8,42,.76));border:1px solid rgba(255,255,255,.11);box-shadow:inset 0 0 28px rgba(255,255,255,.035),0 0 34px rgba(64,230,255,.09)}
+.winner-team-logo img{width:88%;height:88%;object-fit:contain;filter:drop-shadow(0 12px 20px rgba(0,0,0,.35))}
+.winner-team-logo span{font-size:clamp(2.6rem,8vw,6rem);font-weight:1000;letter-spacing:-.06em;color:#e8fbff;text-shadow:0 0 26px rgba(64,230,255,.45)}
+.winner-label{font-size:clamp(.7rem,1.5vw,.95rem);font-weight:1000;letter-spacing:.34em;text-transform:uppercase;color:#56eaff;text-shadow:0 0 18px rgba(64,230,255,.38)}
+.winner-name{max-width:94vw;margin:0;font-size:clamp(2.7rem,8.5vw,7.4rem);line-height:.86;font-weight:1000;letter-spacing:-.045em;text-transform:uppercase;background:linear-gradient(98deg,#fff 0%,#dffcff 25%,#64eaff 48%,#c5aaff 68%,#ff83ec 100%);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 9px 25px rgba(0,0,0,.36));animation:winnerNameIn .62s .12s ease-out both;overflow-wrap:anywhere}
+@keyframes winnerNameIn{from{opacity:0;transform:translateY(18px);letter-spacing:.02em}to{opacity:1;transform:none}}
+.winner-series{display:flex;align-items:center;justify-content:center;gap:8px;min-height:24px;margin-top:4px}
+.winner-series-dot{width:15px;height:15px;border-radius:4px;transform:rotate(45deg);border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.035)}
+.winner-series-dot.on{background:linear-gradient(135deg,#b5f9ff,#40e6ff 50%,#895cff);border-color:#a5f7ff;box-shadow:0 0 14px rgba(64,230,255,.9),0 0 30px rgba(137,92,255,.28)}
+.winner-meta{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin-top:5px}
+.winner-meta span{display:inline-flex;align-items:center;gap:6px;padding:7px 11px;border:1px solid rgba(255,255,255,.09);border-radius:999px;background:rgba(255,255,255,.03);color:#afbed5;font-size:clamp(.58rem,1.1vw,.76rem);font-weight:850;letter-spacing:.09em;text-transform:uppercase}
+.winner-accent{width:min(620px,76vw);height:2px;margin-top:7px;background:linear-gradient(90deg,transparent,#40e6ff 25%,#895cff 52%,#ff45e6 76%,transparent);box-shadow:0 0 18px rgba(137,92,255,.4)}
+.winner-subtitle{color:#d6e1ef;font-size:clamp(.72rem,1.3vw,.92rem);font-weight:800;letter-spacing:.13em;text-transform:uppercase}
+.winner-splash.closing .winner-stage{animation:winnerOut .32s ease-in both}@keyframes winnerOut{to{opacity:0;transform:scale(.96)}}
+@media(max-width:620px){.winner-splash{padding:18px 14px}.winner-stage{gap:9px}.winner-logo-shell{width:138px;height:138px}.winner-logo-shell::before{inset:-12%}.winner-name{font-size:clamp(2.55rem,14vw,4.6rem);line-height:.9}.winner-label{font-size:.62rem;letter-spacing:.25em}.winner-crown{font-size:.61rem;letter-spacing:.2em}.winner-event{font-size:.56rem;letter-spacing:.12em}.winner-event::before,.winner-event::after{width:24px}.winner-series-dot{width:12px;height:12px}.winner-meta{gap:6px}.winner-meta span{font-size:.55rem;padding:6px 8px}.winner-subtitle{font-size:.61rem}.winner-accent{width:82vw}}
